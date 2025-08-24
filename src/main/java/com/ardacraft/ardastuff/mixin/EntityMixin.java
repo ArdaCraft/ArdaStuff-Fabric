@@ -8,9 +8,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting Entity to prevent players from pushing entities unless permitted.
+ */
 @Mixin(Entity.class)
 public abstract class EntityMixin {
 
+    /**
+     * Cancels Entity#pushAwayFrom when the pusher is a ServerPlayerEntity without the
+     * "ardastuff.allow.entitypush" permission node.
+     *
+     * @param entity the entity attempting to push this entity
+     * @param ci     mixin callback info
+     */
     @Inject(
             method = "pushAwayFrom",
             at = @At("HEAD"),

@@ -10,9 +10,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting CarvedPumpkinBlock to prevent iron/snow golem construction.
+ * Plays a sound and cancels entity spawning when the pumpkin pattern is detected.
+ */
 @Mixin(CarvedPumpkinBlock.class)
 public class CarvedPumpkinBlockMixin {
 
+    /**
+     * Prevents snow golem spawning from carved pumpkin pattern.
+     */
     @Inject(method = "trySpawnEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/CarvedPumpkinBlock;spawnEntity(Lnet/minecraft/world/World;Lnet/minecraft/block/pattern/BlockPattern$Result;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/BlockPos;)V", ordinal = 0), cancellable = true)
     public void noSpawnSnowGolem(World world, BlockPos pos, CallbackInfo ci) {
         if(!world.isClient) {
@@ -21,6 +28,9 @@ public class CarvedPumpkinBlockMixin {
         ci.cancel();
     }
 
+    /**
+     * Prevents iron golem spawning from carved pumpkin pattern.
+     */
     @Inject(method = "trySpawnEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/CarvedPumpkinBlock;spawnEntity(Lnet/minecraft/world/World;Lnet/minecraft/block/pattern/BlockPattern$Result;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/BlockPos;)V", ordinal = 1), cancellable = true)
     public void noSpawnIronGolem(World world, BlockPos pos, CallbackInfo ci) {
         if(!world.isClient) {

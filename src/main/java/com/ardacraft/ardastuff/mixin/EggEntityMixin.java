@@ -6,12 +6,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting EggEntity to disable egg collision behavior (e.g., hatching chance).
+ */
 @Mixin(EggEntity.class)
 public class EggEntityMixin {
 
+    /**
+     * Cancels onCollision so thrown eggs have no effect.
+     *
+     * @param ci mixin callback info
+     */
     @Inject(at = @At("HEAD"), method = "onCollision", cancellable = true)
     private void onCollision(CallbackInfo ci) {
         ci.cancel();
     }
-
 }

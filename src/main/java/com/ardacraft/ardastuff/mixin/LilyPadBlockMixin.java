@@ -11,9 +11,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting LilyPadBlock to prevent boats from breaking lily pads.
+ */
 @Mixin(LilyPadBlock.class)
 public abstract class LilyPadBlockMixin {
 
+    /**
+     * Cancels onEntityCollision for boats to preserve lily pads.
+     */
     @Inject(
             method = "onEntityCollision",
             at = @At("HEAD"),

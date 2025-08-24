@@ -7,9 +7,19 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+/**
+ * Mixin targeting ServerPlayerEntity to clean up temporary mounts.
+ * If a player dismounts an entity named "deleteme" that has no passengers, the entity is discarded.
+ */
 @Mixin(net.minecraft.server.network.ServerPlayerEntity.class)
 public class ServerPlayerEntity
 {
+    /**
+     * After the player stops riding, discard placeholder entities named "deleteme" if they are now empty.
+     *
+     * @param ci     mixin callback info
+     * @param entity the entity that was being ridden
+     */
     @Inject(method = "stopRiding()V", at = @At("TAIL"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void stopRidingInject(CallbackInfo ci, Entity entity)
     {

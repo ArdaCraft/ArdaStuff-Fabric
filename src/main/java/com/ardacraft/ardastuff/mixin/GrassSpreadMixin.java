@@ -11,15 +11,23 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Mixin targeting GrassBlock to disable bonemeal growth and growth checks.
+ */
 @Mixin(GrassBlock.class)
 public class GrassSpreadMixin {
 
-
+    /**
+     * Prevents grass from generating vegetation when bonemealed.
+     */
     @Inject(at = @At("HEAD"), method = "grow", cancellable = true)
     private void injected(ServerWorld world, Random random, BlockPos pos, BlockState state, CallbackInfo ci) {
         ci.cancel();
     }
 
+    /**
+     * Always returns false for GrassBlock#canGrow to disable bonemeal from working.
+     */
     @Inject(at = @At("HEAD"), method = "canGrow", cancellable = true)
     private void injected(CallbackInfoReturnable<Boolean> cir) {
         cir.setReturnValue(false);

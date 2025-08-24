@@ -32,9 +32,18 @@ import xyz.nucleoid.stimuli.event.world.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
+/**
+ * Main entrypoint for the ArdaStuff Fabric mod.
+ * <p>
+ * Responsibilities:
+ * - Registers server lifecycle, tick, and player/world events.
+ * - Integrates with Stimuli for world/entity protection rules.
+ * - Schedules periodic world saves and handles graceful shutdown.
+ * - Provides helper methods for permission checks and protection logic.
+ * </p>
+ */
 public class ArdaStuff implements ModInitializer {
 
     public static boolean disableWaterSpread = true;
@@ -42,6 +51,10 @@ public class ArdaStuff implements ModInitializer {
     public ArrayList<Identifier> allowedCreateBlocks;
     public static boolean eventBypass = false;
 
+    /**
+     * Initializes the mod: registers events, schedules auto-saving, and sets up protection rules.
+     * Invoked once when the server starts and Fabric initializes this mod.
+     */
     @Override
     public void onInitialize() {
         waterSpreaders = new HashSet<>();
@@ -486,10 +499,24 @@ public class ArdaStuff implements ModInitializer {
         });
     }
 
+    /**
+     * Checks if the given player's hands (main-hand and off-hand) are both empty.
+     *
+     * @param player the player to check
+     * @return true if both hands are empty; false otherwise
+     */
     public boolean isHandEmpty(PlayerEntity player) {
         return player.getMainHandStack().isEmpty() && player.getOffHandStack().isEmpty();
     }
 
+    /**
+     * Checks whether a player has a specific LuckPerms permission node.
+     * Only works reliably for server-side players; client-only PlayerEntity instances will return false.
+     *
+     * @param player     the player to check (expected to be a ServerPlayerEntity)
+     * @param permission the permission node to check, e.g. "metatweaks.protection"
+     * @return true if the permission is granted; false otherwise
+     */
     public boolean hasPermission(PlayerEntity player, String permission) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             try {
@@ -504,6 +531,16 @@ public class ArdaStuff implements ModInitializer {
         return false;
     }
 
+    /**
+     * Determines whether a block interaction should be blocked by protection logic.
+     * Allows door/gate use with empty hands, but otherwise requires a specific permission.
+     *
+     * @param player    the player attempting to use a block
+     * @param world     the world containing the block
+     * @param hand      the hand used for the interaction
+     * @param hitResult the hit result providing the target block position
+     * @return true if the block is protected against the use action; false if allowed
+     */
     public boolean isBlockProtectedAgainstUseAction(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
 
         var blockName = Registries.BLOCK.getId(world.getBlockState(hitResult.getBlockPos()).getBlock()).toString().toLowerCase();

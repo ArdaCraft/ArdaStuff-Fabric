@@ -6,9 +6,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting TntMinecartEntity to prevent ticking (and thus detonation logic).
+ */
 @Mixin(TntMinecartEntity.class)
 public class TNTMinecartMixin {
 
+    /**
+     * Cancels tick to disable TNT minecart behavior.
+     */
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     public void explode(CallbackInfo ci) {
         ci.cancel();

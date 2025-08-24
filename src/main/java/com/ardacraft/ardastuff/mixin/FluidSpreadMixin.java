@@ -15,9 +15,21 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin targeting FluidState to conditionally cancel water spread.
+ * If ArdaStuff.disableWaterSpread is true, only allow fluid updates inside regions selected by
+ * players listed in ArdaStuff.waterSpreaders (via WorldEdit selection).
+ */
 @Mixin(FluidState.class)
 public class FluidSpreadMixin {
 
+    /**
+     * Intercepts scheduled fluid ticks and cancels water spread outside permitted regions.
+     *
+     * @param world the world
+     * @param pos   the block position being updated
+     * @param ci    mixin callback info
+     */
     @Inject(method = "onScheduledTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/fluid/Fluid;onScheduledTick(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/fluid/FluidState;)V"), cancellable = true)
     public void onWaterSpread(World world, BlockPos pos, CallbackInfo ci) {
         if (ArdaStuff.disableWaterSpread) {

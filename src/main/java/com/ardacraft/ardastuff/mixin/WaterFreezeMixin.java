@@ -10,9 +10,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Mixin targeting Biome to prevent water from freezing into ice.
+ */
 @Mixin(Biome.class)
 public class WaterFreezeMixin {
 
+    /**
+     * Forces canSetIce to return false under all circumstances.
+     */
     @Inject(at = @At("HEAD"), method = "canSetIce(Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;)Z", cancellable = true)
     private void injected(WorldView p_47478_, BlockPos p_47479_, CallbackInfoReturnable<Boolean> cir) {
         cir.setReturnValue(false);

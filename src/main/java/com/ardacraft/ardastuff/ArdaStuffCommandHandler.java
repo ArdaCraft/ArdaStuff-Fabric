@@ -28,8 +28,19 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 
+/**
+ * Registers and implements server commands for the ArdaStuff mod.
+ * Commands include: /guide, /cwaterspread, /sauronsays, /nightvision (/nv), /mount, /boat.
+ */
 public class ArdaStuffCommandHandler {
 
+    /**
+     * Registers all commands for this mod. Invoked during Fabric's command registration callback.
+     *
+     * @param dispatcher      command dispatcher
+     * @param registryAccess  command registry access
+     * @param environment     registration environment
+     */
     public static void ArdaStuffCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment)
     {
 
@@ -134,6 +145,12 @@ public class ArdaStuffCommandHandler {
 
     }
 
+    /**
+     * Toggles the Night Vision effect for the executing player and sends a feedback message.
+     *
+     * @param source the command source
+     * @return brigadier success code
+     */
     private static int processNightvision(ServerCommandSource source) {
         if (!source.isExecutedByPlayer()) return 0;
 
