@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Blocks the construction/spawning of Snow and Iron Golems via carved pumpkin patterns.
+ * Plays a horn sound as feedback and cancels the spawn action on the server side.
+ */
 @Mixin(CarvedPumpkinBlock.class)
 public class CarvedPumpkinBlockMixin {
 

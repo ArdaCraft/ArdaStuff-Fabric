@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Stops blocks like grass/mycelium from spreading by cancelling SpreadableBlock#randomTick.
+ */
 @Mixin(SpreadableBlock.class)
 public class SpreadableBlockMixin {
 

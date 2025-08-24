@@ -6,6 +6,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Disables crop growth by forcing CropBlock#canGrow to return false.
+ * Prevents random and bonemeal growth to enforce build server rules.
+ */
 @Mixin(CropBlock.class)
 public class CropGrowthMixin {
 

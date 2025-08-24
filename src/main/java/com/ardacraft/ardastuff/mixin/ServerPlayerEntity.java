@@ -7,6 +7,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+/**
+ * After a player stops riding, automatically removes the ridden entity if its custom name is "deleteme".
+ * Useful for temporary mounts/vehicles created for teleportation or effects.
+ */
 @Mixin(net.minecraft.server.network.ServerPlayerEntity.class)
 public class ServerPlayerEntity
 {

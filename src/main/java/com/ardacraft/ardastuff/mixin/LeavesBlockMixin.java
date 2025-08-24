@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Prevents leaf decay by forcing LeavesBlock#shouldDecay to return false.
+ */
 @Mixin(LeavesBlock.class)
 public class LeavesBlockMixin {
 

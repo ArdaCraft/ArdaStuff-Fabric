@@ -9,6 +9,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Prevents concrete powder from hardening into concrete by intercepting shouldHarden/hardensOnAnySide.
+ */
 @Mixin(ConcretePowderBlock.class)
 public class ConcretePowderBlockMixin
 {

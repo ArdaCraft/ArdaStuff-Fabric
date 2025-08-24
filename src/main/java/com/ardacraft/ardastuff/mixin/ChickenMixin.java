@@ -8,6 +8,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Suppresses the chicken egg-laying sound by cancelling the relevant invocation
+ * within ChickenEntity#tickMovement. This reduces ambient noise from chickens.
+ */
 @Mixin(ChickenEntity.class)
 public class ChickenMixin {
 

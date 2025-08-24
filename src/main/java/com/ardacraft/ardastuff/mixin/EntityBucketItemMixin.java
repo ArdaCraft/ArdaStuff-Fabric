@@ -9,6 +9,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Prevents releasing bucketed entities (e.g., fish, axolotls) by cancelling
+ * EntityBucketItem#spawnEntity. This blocks unwanted mob placement.
+ */
 @Mixin(EntityBucketItem.class)
 public class EntityBucketItemMixin {
 

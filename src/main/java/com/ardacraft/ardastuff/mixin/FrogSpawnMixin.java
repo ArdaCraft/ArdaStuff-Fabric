@@ -9,6 +9,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Cancels FrogspawnBlock updates on placement to prevent frog/tadpole spawning mechanics from proceeding.
+ */
 @Mixin(FrogspawnBlock.class)
 public class FrogSpawnMixin {
 

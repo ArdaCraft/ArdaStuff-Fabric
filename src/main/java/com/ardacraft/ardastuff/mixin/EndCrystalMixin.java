@@ -5,6 +5,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.Inject;
 
+/**
+ * Suppresses End Crystal explosions: on any damage, kill the entity and
+ * return false to cancel vanilla explosion/damage handling.
+ */
 @Mixin(EndCrystalEntity.class)
 public abstract class EndCrystalMixin {
 

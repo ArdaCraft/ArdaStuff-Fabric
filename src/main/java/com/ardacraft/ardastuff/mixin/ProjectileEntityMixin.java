@@ -8,6 +8,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Disables projectile collision handling by cancelling ProjectileEntity#onCollision.
+ * Prevents arrows/tridents/etc. from interacting with blocks and entities.
+ */
 @Mixin(ProjectileEntity.class)
 public class ProjectileEntityMixin {
 

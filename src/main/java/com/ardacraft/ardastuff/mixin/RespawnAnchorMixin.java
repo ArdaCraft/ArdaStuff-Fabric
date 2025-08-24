@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Disables Respawn Anchor explosions by cancelling RespawnAnchorBlock#explode.
+ */
 @Mixin(RespawnAnchorBlock.class)
 public class RespawnAnchorMixin {
 

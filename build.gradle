@@ -24,7 +24,6 @@ repositories {
     maven { url = "https://cursemaven.com" }
     maven { url = "https://mvn.devos.one/snapshots/" }
     maven { url = "https://api.modrinth.com/maven" }
-    maven { url = "https://repo.ajcool.space/snapshots" }
     maven { url = "https://maven.jamieswhiteshirt.com/libs-release" }
     maven { url = "https://maven.tterrag.com/" } // Flywheel
     maven { url = "https://jitpack.io/" }
@@ -47,16 +46,19 @@ dependencies {
     modImplementation("curse.maven:worldedit-225608:4586218")
     //modImplementation ("com/fastasyncworldedit:FastAsyncWorldEdit-Fabric:2.6.0-SNAPSHOT")
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_version}")
+
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    //modImplementation("io.github.fabricators_of_create.Porting-Lib:porting-lib:2.3.4+1.20.1")
+
+    //create 0.5.1j patch 3
+    modImplementation("maven.modrinth:Xbc0uyRg:7Ub71nPb")
     modImplementation("fuzs.forgeconfigapiport:forgeconfigapiport-fabric:8.0.0")
-    modImplementation("maven.modrinth:porting_lib:GWCykcY1")
+
+    //portinglib
+    modImplementation("maven.modrinth:tEJPA4Ty:GWCykcY1")
     compileOnly("net.luckperms:api:5.4")
     modLocalRuntime("maven.modrinth:lazydfu:${lazydfu_version}")
     modImplementation (include('org.json:json:20220924'))
     modImplementation 'xyz.nucleoid:stimuli:0.4.7+1.20.1'
-    //modImplementation("name:PocketDimensionPlots-Fabric-1.19.2-0.1.0")
 }
 
 processResources {

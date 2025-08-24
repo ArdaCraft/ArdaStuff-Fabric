@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Cancels projectile interactions with blocks by intercepting AbstractBlock#onProjectileHit.
+ * This helps prevent grief-like behaviors from projectile impacts (e.g., arrows, tridents).
+ */
 @Mixin(AbstractBlock.class)
 public class AbstractBlockMixin {
 

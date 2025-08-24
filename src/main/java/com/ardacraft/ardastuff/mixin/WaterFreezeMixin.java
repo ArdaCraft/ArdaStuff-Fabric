@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Prevents water from freezing by forcing Biome#canSetIce(WorldView, BlockPos) to return false.
+ * This disables natural ice formation regardless of conditions.
+ */
 @Mixin(Biome.class)
 public class WaterFreezeMixin {
 

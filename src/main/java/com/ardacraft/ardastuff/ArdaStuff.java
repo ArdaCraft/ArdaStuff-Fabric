@@ -27,6 +27,21 @@ import xyz.nucleoid.stimuli.event.world.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+/**
+ * Main entry point for the ArdaStuff Fabric mod.
+ * <p>
+ * Responsibilities:
+ * - Registers Stimuli world/entity event listeners to hard-disable a number of grief-prone mechanics (fire tick, TNT ignite, ice melt, wither summon, snow fall, projectile interactions with frames/paintings when bypass is enabled, etc.).
+ * - Registers commands via {@link ArdaStuffCommandHandler} on dedicated servers.
+ * - Provides simple permission integration via LuckPerms to gate interactions and item/block usage.
+ * - Maintains shared state (e.g., water spread toggles and painting breakers list).
+ * <p>
+ * Permissions used (LuckPerms):
+ * - metatweaks.candie: Players with this can take damage; otherwise damage is denied for players.
+ * - metatweaks.create: Allows basic interaction/breaking of Create mod blocks.
+ * - metatweaks.createAll: Allows all Create mod blocks; otherwise restricted to a whitelist.
+ * - metatweaks.protection: General protection bypass for interactions/placements.
+ */
 public class ArdaStuff implements ModInitializer {
 
     public static ArrayList<ServerPlayerEntity> paintingBreakers;
@@ -36,6 +51,10 @@ public class ArdaStuff implements ModInitializer {
 
     public ArrayList<Identifier> allowedCreateBlocks;
 
+    /**
+     * Fabric mod initialization hook. Sets up static state, allowed Create block whitelist,
+     * registers Stimuli listeners, command handlers, and protection logic.
+     */
     @Override
     public void onInitialize() {
         waterSpreaders = new HashSet<>();
@@ -62,6 +81,11 @@ public class ArdaStuff implements ModInitializer {
         allowedCreateBlocks.add(new Identifier("create:schematicannon"));
 
 
+        /*
+         * Projectile entity hit handling.
+         * - Default: deny projectile collisions with entities (returns FAIL) to prevent grief (e.g., arrows breaking frames).
+         * - When eventBypass is true: allow projectile hits in general (SUCCESS) but still deny impacts on paintings and item frames.
+         */
         Stimuli.global().listen(ProjectileHitEvent.ENTITY, (projectileEntity, hitResult) -> {
             if (eventBypass) {
                 if (hitResult.getEntity().getType().getLootTableId().equals(new Identifier("minecraft:entities/painting"))) {
@@ -80,37 +104,63 @@ public class ArdaStuff implements ModInitializer {
         });
 
 
+        /*
+         * Disable fire tick updates globally (no natural fire spread or block ignition updates).
+         */
         Stimuli.global().listen(FireTickEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
 
+        /*
+         * Prevent ice from melting into water.
+         */
         Stimuli.global().listen(IceMeltEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
 
+        /*
+         * Block Wither summoning sequences from completing.
+         */
         Stimuli.global().listen(WitherSummonEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
 
+        /*
+         * Prevent new snow layers from forming due to snowfall.
+         */
         Stimuli.global().listen(SnowFallEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
 
+        /*
+         * Prevent TNT from being ignited by any source.
+         */
         Stimuli.global().listen(TntIgniteEvent.EVENT, (world, pos, entity) -> {
             return ActionResult.FAIL;
         });
 
 
+        /*
+         * Explosion detonation listener: intentionally left as a no-op placeholder for future logic.
+         */
         Stimuli.global().listen(ExplosionDetonatedEvent.EVENT, (explosion, particles) -> {
             return;
         });
 
+        /*
+         * Register /ardastuff commands on dedicated servers only.
+         */
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             if (environment.dedicated) {
                 ArdaStuffCommandHandler.ArdaStuffCommands(dispatcher, registryAccess, environment);
             }
         });
 
+        /*
+         * Damage permission gate for players.
+         * - Players require `metatweaks.candie` to receive damage (returns true to allow damage).
+         * - Non-player entities are unaffected (damage allowed).
+         */
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (entity instanceof ServerPlayerEntity player) {
                 if (hasPermission(player, "metatweaks.candie")) {
@@ -121,6 +171,11 @@ public class ArdaStuff implements ModInitializer {
             return true;
         });
 
+        /*
+         * Block break: Create mod block whitelist + permissions.
+         * - If the block is from the Create namespace, player must have metatweaks.create.
+         * - If metatweaks.createAll is absent, only blocks on allowedCreateBlocks are permitted.
+         */
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 if (Registries.BLOCK.getId(state.getBlock()).getNamespace().equalsIgnoreCase("create")) {
@@ -140,6 +195,9 @@ public class ArdaStuff implements ModInitializer {
             return true;
         });
 
+        /*
+         * Block break: general protection gate. Requires metatweaks.protection to break any block.
+         */
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 if (!hasPermission(serverPlayer, "metatweaks.protection")) {
@@ -149,6 +207,13 @@ public class ArdaStuff implements ModInitializer {
             return true;
         });
 
+        /*
+         * Use block callback (right-click on blocks):
+         * - Proactively denies usage of certain grief-prone items (spawn eggs, buckets, boats, tridents, F&S, etc.) and logs usage attempts.
+         * - Requires metatweaks.protection to proceed with most interactions.
+         * - Extra Create item gating: requires metatweaks.create and optionally metatweaks.createAll or whitelist match.
+         * - Finally, applies isBlockProtectedAgainstUseAction (doors/gates allowed with empty hand; otherwise permission required).
+         */
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (player.getMainHandStack().getItem() instanceof SpawnEggItem) {
                 Log.info(LogCategory.LOG, "Spawn egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
@@ -224,6 +289,12 @@ public class ArdaStuff implements ModInitializer {
             return isBlockProtectedAgainstUseAction(player, world, hand, hitResult) ? ActionResult.FAIL : ActionResult.PASS;
         });
 
+        /*
+         * Use entity callback (right-click on entities):
+         * - Denies use of grief-prone items and logs attempts, similar to block use.
+         * - Requires metatweaks.protection; adds Create item gating logic when interacting via Create items.
+         * - If permitted, returns PASS to allow vanilla/other handlers to proceed; otherwise FAIL to block.
+         */
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (player.getMainHandStack().getItem() instanceof SpawnEggItem) {
                 Log.info(LogCategory.LOG, "Spawn egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
@@ -309,6 +380,13 @@ public class ArdaStuff implements ModInitializer {
             return ActionResult.FAIL;
         });
 
+        /*
+         * Use item callback (right-click in air):
+         * - Allows Patchouli guide books to be opened normally.
+         * - Denies various grief-prone items (spawn eggs, buckets, boats, tridents, F&S, throwable potions, etc.).
+         * - If metatweaks.protection is missing, generally yields PASS to let other handlers potentially ignore/handle.
+         * - Create items: same permission/whitelist gating as block/entity use.
+         */
         UseItemCallback.EVENT.register((player, world, hand) -> {
 
             if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("patchouli:guide_book")) {
@@ -393,11 +471,22 @@ public class ArdaStuff implements ModInitializer {
 
     }
 
-    public boolean isHandEmpty(PlayerEntity player) {
+    /**
+         * Checks if both hands are empty.
+         * @param player the player to check
+         * @return true if both main hand and offhand are empty, false otherwise
+         */
+        public boolean isHandEmpty(PlayerEntity player) {
         return player.getMainHandStack().isEmpty() && player.getOffHandStack().isEmpty();
     }
 
-    public boolean hasPermission(PlayerEntity player, String permission) {
+    /**
+         * Checks a LuckPerms permission for the given player. Only evaluated for server players.
+         * @param player the player
+         * @param permission the permission node to check
+         * @return true if permitted; false otherwise or if not a server player/adapter unavailable
+         */
+        public boolean hasPermission(PlayerEntity player, String permission) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             try {
                 if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission(permission).asBoolean()) {
@@ -411,7 +500,16 @@ public class ArdaStuff implements ModInitializer {
         return false;
     }
 
-    public boolean isBlockProtectedAgainstUseAction(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
+    /**
+         * Determines whether a block use action should be treated as protected/denied for a player.
+         * Allows bare-hand interaction with doors/gates; otherwise requires metatweaks.protection.
+         * @param player the player
+         * @param world the world
+         * @param hand the hand used
+         * @param hitResult the targeted block hit
+         * @return true if use action is protected (should be denied), false otherwise
+         */
+        public boolean isBlockProtectedAgainstUseAction(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
 
         var blockName = Registries.BLOCK.getId(world.getBlockState(hitResult.getBlockPos()).getBlock()).toString().toLowerCase();
 

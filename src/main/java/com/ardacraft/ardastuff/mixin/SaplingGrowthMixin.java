@@ -11,6 +11,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Disables sapling growth and tree generation by intercepting canGrow/grow/generate/randomTick.
+ * Prevents both natural and bonemeal growth.
+ */
 @Mixin(SaplingBlock.class)
 public class SaplingGrowthMixin {
 

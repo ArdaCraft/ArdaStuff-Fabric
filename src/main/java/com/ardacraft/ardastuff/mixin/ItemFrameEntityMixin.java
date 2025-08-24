@@ -6,6 +6,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Ensures item frames remain attached by forcing ItemFrameEntity#canStayAttached to return true.
+ * Prevents accidental detachment due to support checks.
+ */
 @Mixin(ItemFrameEntity.class)
 public class ItemFrameEntityMixin {
 

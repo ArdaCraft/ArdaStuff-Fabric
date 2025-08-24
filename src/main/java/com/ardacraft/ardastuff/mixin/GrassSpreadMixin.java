@@ -11,6 +11,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Disables bonemeal grass/flower generation by cancelling GrassBlock#grow and canGrow.
+ */
 @Mixin(GrassBlock.class)
 public class GrassSpreadMixin {
 

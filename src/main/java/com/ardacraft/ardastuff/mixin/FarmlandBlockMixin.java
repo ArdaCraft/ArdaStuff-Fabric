@@ -6,6 +6,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Prevents farmland from turning back into dirt by cancelling FarmlandBlock#setToDirt.
+ * Protects farmland from trampling and hydration loss mechanics.
+ */
 @Mixin(FarmlandBlock.class)
 public class FarmlandBlockMixin {
 

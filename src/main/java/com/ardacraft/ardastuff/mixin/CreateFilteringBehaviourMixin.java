@@ -9,6 +9,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Restricts Create's filtering/config packets unless the sender has the
+ * LuckPerms permission node "metatweaks.createconfig". This prevents
+ * unauthorized changes to Create block entity configurations from clients.
+ */
 @Mixin(BlockEntityConfigurationPacket.class)
 abstract class CreateFilteringBehaviourMixin {
 

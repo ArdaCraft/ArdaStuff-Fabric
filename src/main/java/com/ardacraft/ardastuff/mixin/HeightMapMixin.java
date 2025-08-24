@@ -12,6 +12,9 @@ import java.util.EnumSet;
 
 import static net.minecraft.world.Heightmap.populateHeightmaps;
 
+/**
+ * Suppresses heightmap desync warnings by repopulating the requested heightmap and cancelling the log.
+ */
 @Mixin(Heightmap.class)
 public class HeightMapMixin {
 
