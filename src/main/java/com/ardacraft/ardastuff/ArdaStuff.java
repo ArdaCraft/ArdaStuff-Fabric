@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
 import net.fabricmc.loader.impl.util.log.Log;
@@ -29,14 +30,13 @@ import xyz.nucleoid.stimuli.event.projectile.ProjectileHitEvent;
 import xyz.nucleoid.stimuli.event.world.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 public class ArdaStuff implements ModInitializer {
 
-    public static ArrayList<ServerPlayerEntity> paintingBreakers;
-    public static HashMap<ServerPlayerEntity, Long> playerTimeMap;
-    public int ticks = 0;
     public static boolean disableWaterSpread = true;
     public static HashSet<ServerPlayerEntity> waterSpreaders;
     public ArrayList<Identifier> allowedCreateBlocks;
@@ -66,6 +66,46 @@ public class ArdaStuff implements ModInitializer {
         allowedCreateBlocks.add(new Identifier("create:gray_valve_handle"));
         allowedCreateBlocks.add(new Identifier("create:schematicannon"));
 
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            // Create a scheduled executor service with a daemon thread
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r, "AutoSave-Thread");
+                thread.setDaemon(true);  // This is crucial for auto-cleanup on crash
+                return thread;
+            });
+
+            // Schedule the save-all command to run every 5 minutes
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    if (server.isRunning()) {
+                        // Schedule the command to be executed on the main server thread
+                        server.execute(() -> {
+                            server.getCommandManager().executeWithPrefix(server.getCommandSource(), "save-all");
+                            Logger.getLogger("ARDASTUFF").info("World automatically saved");
+                        });
+                    }
+                } catch (Exception e) {
+                    Logger.getLogger("ARDASTUFF").warning("Error during automatic world save: " + e.getMessage());
+                }
+            }, 30, 40, TimeUnit.MINUTES);
+
+            // For normal shutdown scenarios
+            ServerLifecycleEvents.SERVER_STOPPING.register(stoppingServer -> {
+                if (stoppingServer == server) {
+                    scheduler.shutdown();
+                    try {
+                        if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                            scheduler.shutdownNow();
+                        }
+                    } catch (InterruptedException e) {
+                        scheduler.shutdownNow();
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            });
+
+            Logger.getLogger("ARDASTUFF").info("Automatic world saving enabled (every 5 minutes)");
+        });
 
 
         Stimuli.global().listen(ProjectileHitEvent.ENTITY, (projectileEntity, hitResult) -> {
@@ -86,8 +126,8 @@ public class ArdaStuff implements ModInitializer {
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            for(ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                if(player.getBlockPos().getY() < -64) {
+            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                if (player.getBlockPos().getY() < -64 && player.getServerWorld().equals(player.getServer().getOverworld())) {
                     server.getCommandManager().executeWithPrefix(player.getCommandSource(), "/warp spawn");
                 }
             }
@@ -126,8 +166,8 @@ public class ArdaStuff implements ModInitializer {
 
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            if(entity instanceof ServerPlayerEntity player) {
-                if(LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.candie").asBoolean()) {
+            if (entity instanceof ServerPlayerEntity player) {
+                if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.candie").asBoolean()) {
                     return true;
                 }
                 return false;
@@ -214,19 +254,6 @@ public class ArdaStuff implements ModInitializer {
                 }
             }
 
-
-            /* TODO
-            if (player instanceof ServerPlayerEntity serverPlayer) {
-                if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getPrimaryGroup().equalsIgnoreCase("default")) {
-                    if (serverPlayer.getWorld().getRegistryKey() == PocketDimensionPlots.VOID) {
-                        if (PocketDimensionPlotsUtils.getPlotFromCoordinates(serverPlayer.getBlockPos()).playerOwner == serverPlayer.getUuid()) {
-                            return ActionResult.PASS;
-                        }
-                        return ActionResult.FAIL;
-                    }
-                }
-            }*/
-
             return isBlockProtectedAgainstUseAction(player, world, hand, hitResult) ? ActionResult.FAIL : ActionResult.PASS;
         });
 
@@ -277,23 +304,12 @@ public class ArdaStuff implements ModInitializer {
                     Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
                     return ActionResult.FAIL;
                 }
-
             }
 
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 try {
                     if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.protection").asBoolean()) {
-                        //check if user is default rank (guest)
-                        //check if use is in their plot, if not, fail
-                        /* TODO
-                        if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getPrimaryGroup().equalsIgnoreCase("default")) {
-                            if (serverPlayer.getWorld().getRegistryKey() == PocketDimensionPlots.VOID) {
-                                if (PocketDimensionPlotsUtils.getPlotFromCoordinates(serverPlayer.getBlockPos()).playerOwner == serverPlayer.getUuid()) {
-                                    return ActionResult.PASS;
-                                }
-                                return ActionResult.FAIL;
-                            }
-                        }*/
+                        /*TODO ADD PLOT RESTRICTIONS HERE*/
                         return ActionResult.PASS;
                     }
                 } catch (IllegalStateException e) {
@@ -379,13 +395,8 @@ public class ArdaStuff implements ModInitializer {
                 try {
                     if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.protection").asBoolean()) {
                         if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getPrimaryGroup().equalsIgnoreCase("default")) {
-                            /* TODO
-                            if (serverPlayer.getWorld().getRegistryKey() == PocketDimensionPlots.VOID) {
-                                if (PocketDimensionPlotsUtils.getPlotFromCoordinates(serverPlayer.getBlockPos()).playerOwner == serverPlayer.getUuid()) {
-                                    return TypedActionResult.pass(player.getMainHandStack());
-                                }
+                            /* TODO ADD PLOT RESTRICTIONS HERE */
                                 return TypedActionResult.fail(player.getMainHandStack());
-                            }*/
                         }
                         return TypedActionResult.pass(player.getMainHandStack());
                     }
@@ -400,19 +411,14 @@ public class ArdaStuff implements ModInitializer {
 
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            //if (Registry.ENTITY_TYPE.getId(entity.getType()).getPath().equalsIgnoreCase("painting") || Registry.ENTITY_TYPE.getId(entity.getType()).getPath().equalsIgnoreCase("item_frame")) {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.guestPaintingBreaking").asBoolean()) {
-                  /* TODO
-                    if (PocketDimensionPlotsUtils.getPlotFromCoordinates(serverPlayer.getBlockPos()).playerOwner == serverPlayer.getUuid() && serverPlayer.getWorld().getRegistryKey() == PocketDimensionPlots.VOID) {
-                        return ActionResult.PASS;
-                    }*/
+                  /* TODO ADD PLOT RESTRICTIONS HERE */
                 }
 
                 if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.paintingBreaking").asBoolean()) {
                     return ActionResult.PASS;
                 }
-                //    }
             }
             return ActionResult.FAIL;
         });
@@ -433,20 +439,18 @@ public class ArdaStuff implements ModInitializer {
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity instanceof ServerPlayerEntity player) {
                 try {
-                   // if (!LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.hasJoined").asBoolean()) {
-                      // world.getServer().getPlayerManager().broadcast(Texts.setStyleIfAbsent(Text.literal("Welcome to ArdaCraft, " + player.getDisplayName().getString() + "! Please check out your guide book!"), Style.EMPTY.withColor(TextColor.parse("#416cba"))), false);
-                        //ItemStack guideBook = Registries.ITEM.get(new Identifier("patchouli", "guide_book")).getDefaultStack();
-                       // ItemStack pathfinder = Registries.ITEM.get(new Identifier("ardapaths", "path_revealer")).getDefaultStack();
+                    if (!LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.hasJoined").asBoolean()) {
+                        world.getServer().getPlayerManager().broadcast(Texts.setStyleIfAbsent(Text.literal("Welcome to ArdaCraft, " + player.getDisplayName().getString() + "! Please check out your guide book!"), Style.EMPTY.withColor(TextColor.parse("#416cba"))), false);
+                        ItemStack guideBook = Registries.ITEM.get(new Identifier("patchouli", "guide_book")).getDefaultStack();
+                        ItemStack pathfinder = Registries.ITEM.get(new Identifier("ardapaths", "path_revealer")).getDefaultStack();
 
-                        //guideBook.getOrCreateNbt().putString("patchouli:book", "patchouli:ac_guide");
-                       //player.giveItemStack(pathfinder);
-                       //player.giveItemStack(guideBook);
+                        guideBook.getOrCreateNbt().putString("patchouli:book", "patchouli:ac_guide");
+                        player.giveItemStack(pathfinder);
+                        player.giveItemStack(guideBook);
 
 
-                        //LuckPermsProvider.get().getUserManager().modifyUser(player.getUuid(), user -> user.data().add(Node.builder("metatweaks.hasJoined").build()));
-                        //player.teleport(player.getServerWorld(), -1468, 25, -826, 0, -10);
-                        //player.getServer().getCommandManager().executeWithPrefix(player.getCommandSource(), "/warp spawn");
-                  //  }
+                        LuckPermsProvider.get().getUserManager().modifyUser(player.getUuid(), user -> user.data().add(Node.builder("metatweaks.hasJoined").build()));
+                    }
                 } catch (IllegalStateException e) {
                     e.printStackTrace();
                 }
