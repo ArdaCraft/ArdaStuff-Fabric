@@ -13,7 +13,6 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.HorseColor;
 import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.entity.passive.HorseMarking;
-import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
@@ -29,8 +28,14 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 
 /**
- * Registers and implements server commands for the ArdaStuff mod.
- * Commands include: /guide, /cwaterspread, /sauronsays, /nightvision (/nv), /mount, /boat.
+ * Registers and implements commands for the ArdaStuff mod.
+ *
+ * Commands:
+ * - /guide: Gives the Patchouli AC guide book.
+ * - /cwaterspread: Toggles custom water spread behavior (permission: metatweaks.cwaterspread).
+ * - /sauronsays <message>: Broadcasts a red server message (requires permission level 2).
+ * - /nightvision, /nv: Toggle Night Vision status effect for the executing player.
+ * - /mount: Spawns a temporary tame horse and mounts the player.
  */
 public class ArdaStuffCommandHandler {
 
