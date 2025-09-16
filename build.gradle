@@ -59,6 +59,7 @@ dependencies {
     modLocalRuntime("maven.modrinth:lazydfu:${lazydfu_version}")
     modImplementation (include('org.json:json:20220924'))
     modImplementation 'xyz.nucleoid:stimuli:0.4.7+1.20.1'
+    modImplementation("name:PlotSquared-7.3.9-SNAPSHOT")
 }
 
 processResources {
