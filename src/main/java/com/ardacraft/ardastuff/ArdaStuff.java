@@ -486,83 +486,102 @@ public class ArdaStuff implements ModInitializer {
         });
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (player instanceof ServerPlayerEntity serverPlayer) {
+            if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+                // Only gate server players; let others fall through normally
+                return ActionResult.PASS;
+            }
 
-                //check for specifically a painting
-                if (entity instanceof PaintingEntity) {
+            // Only handle paintings here; everything else should pass
+            if (!(entity instanceof PaintingEntity)) {
+                return ActionResult.PASS;
+            }
 
-                    //guest plots painting breaking permission - metatweaks.guestPaintingBreaking
-                    if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.guestPaintingBreaking").asBoolean()) {
-                        Location location = FabricUtil.adapt(GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(), hitResult.getEntity().getBlockPos()));
-                        PlotArea area = location.getPlotArea();
-                        if (area == null) {
-                            return ActionResult.FAIL;
-                        }
-                        FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
-                        Plot plot = area.getPlot(location);
-                        if (plot != null) {
-                            if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
-                                fabricPlayer.sendMessage(
-                                        TranslatableCaption.of("height.height_limit"),
-                                        TagResolver.builder()
-                                                .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
-                                                .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
-                                                .build()
-                                );
-                                return ActionResult.FAIL;
-                            }
-                            if (!plot.hasOwner()) {
-                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
-                                    fabricPlayer.sendMessage(
-                                            TranslatableCaption.of("permission.no_permission_event"),
-                                            TagResolver.resolver(
-                                                    "node",
-                                                    Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)
-                                            )
-                                    );
-                                    return ActionResult.FAIL;
-                                }
-                            } else if (!plot.isAdded(fabricPlayer.getUUID())) {
-                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
-                                    fabricPlayer.sendMessage(
-                                            TranslatableCaption.of("permission.no_permission_event"),
-                                            TagResolver.resolver(
-                                                    "node",
-                                                    Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER)
-                                            )
-                                    );
-                                    return ActionResult.FAIL;
-                                }
-                            } else if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
-                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
-                                    fabricPlayer.sendMessage(
-                                            TranslatableCaption.of("done.building_restricted")
-                                    );
-                                    return ActionResult.FAIL;
-                                }
-                            }
-                        } else if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_ROAD)) {
+            // 1) Global bypass: can break paintings anywhere
+            if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class)
+                    .getUser(serverPlayer)
+                    .getCachedData()
+                    .getPermissionData()
+                    .checkPermission("metatweaks.paintingBreaking")
+                    .asBoolean()) {
+                return ActionResult.PASS;
+            }
+
+            // 2) Guest permission: only on owned or added plots (with other plot constraints)
+            if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class)
+                    .getUser(serverPlayer)
+                    .getCachedData()
+                    .getPermissionData()
+                    .checkPermission("metatweaks.guestPaintingBreaking")
+                    .asBoolean()) {
+
+                Location location = FabricUtil.adapt(
+                        GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(),
+                                hitResult.getEntity().getBlockPos()));
+                PlotArea area = location.getPlotArea();
+                if (area == null) {
+                    // No plot system here → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+                Plot plot = area.getPlot(location);
+                if (plot == null) {
+                    // Not inside a plot → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                    fabricPlayer.sendMessage(
+                            TranslatableCaption.of("height.height_limit"),
+                            TagResolver.builder()
+                                    .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                    .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                    .build()
+                    );
+                    return ActionResult.FAIL;
+                }
+
+                if (!plot.hasOwner()) {
+                    // Unowned plot requires admin permission
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                        fabricPlayer.sendMessage(
+                                TranslatableCaption.of("permission.no_permission_event"),
+                                TagResolver.resolver("node",
+                                        Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
+                        );
+                        return ActionResult.FAIL;
+                    }
+                } else {
+                    // Must be owner OR added
+                    boolean isOwner = plot.getOwner() != null && plot.getOwner().equals(fabricPlayer.getUUID());
+                    boolean isAdded = plot.isAdded(fabricPlayer.getUUID());
+                    if (!(isOwner || isAdded)) {
+                        if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
                             fabricPlayer.sendMessage(
                                     TranslatableCaption.of("permission.no_permission_event"),
-                                    TagResolver.resolver(
-                                            "node",
-                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_ROAD)
-                                    )
+                                    TagResolver.resolver("node",
+                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
                             );
                             return ActionResult.FAIL;
                         }
-                        return ActionResult.PASS;
                     }
-
-                    //global painting breaking permission - metatweaks.paintingBreaking
-                    if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.paintingBreaking").asBoolean()) {
-                        return ActionResult.PASS;
-                    }
-                    return ActionResult.FAIL;
                 }
+
+                if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                        fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
+                        return ActionResult.FAIL;
+                    }
+                }
+
+                // All guest conditions satisfied
+                return ActionResult.PASS;
             }
-            return ActionResult.PASS;
+
+            // 3) No global or guest permission → deny
+            return ActionResult.FAIL;
         });
+
 
     }
 
