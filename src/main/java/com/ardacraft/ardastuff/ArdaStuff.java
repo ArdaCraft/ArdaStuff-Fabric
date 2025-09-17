@@ -1,15 +1,29 @@
 package com.ardacraft.ardastuff;
 
+import com.plotsquared.core.configuration.Settings;
+import com.plotsquared.core.configuration.caption.TranslatableCaption;
+import com.plotsquared.core.location.Location;
+import com.plotsquared.core.permissions.Permission;
+import com.plotsquared.core.plot.Plot;
+import com.plotsquared.core.plot.PlotArea;
+import com.plotsquared.core.plot.flag.implementations.DisablePhysicsFlag;
+import com.plotsquared.core.plot.flag.implementations.DoneFlag;
+import com.plotsquared.core.plot.flag.implementations.PlaceFlag;
+import com.plotsquared.core.plot.flag.types.BlockTypeWrapper;
+import com.plotsquared.fabric.player.FabricPlayer;
+import com.plotsquared.fabric.util.FabricUtil;
+import com.sk89q.worldedit.fabric.FabricAdapter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.event.player.*;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.luckperms.api.LuckPermsProvider;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.registry.Registries;
@@ -19,6 +33,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 import xyz.nucleoid.stimuli.Stimuli;
 import xyz.nucleoid.stimuli.event.projectile.ProjectileHitEvent;
@@ -26,6 +41,7 @@ import xyz.nucleoid.stimuli.event.world.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * Main entry point for the ArdaStuff Fabric mod.
@@ -467,6 +483,85 @@ public class ArdaStuff implements ModInitializer {
             }
 
             return TypedActionResult.pass(ItemStack.EMPTY);
+        });
+
+        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (player instanceof ServerPlayerEntity serverPlayer) {
+
+                //check for specifically a painting
+                if (entity instanceof PaintingEntity) {
+
+                    //guest plots painting breaking permission - metatweaks.guestPaintingBreaking
+                    if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.guestPaintingBreaking").asBoolean()) {
+                        Location location = FabricUtil.adapt(GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(), hitResult.getEntity().getBlockPos()));
+                        PlotArea area = location.getPlotArea();
+                        if (area == null) {
+                            return ActionResult.FAIL;
+                        }
+                        FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+                        Plot plot = area.getPlot(location);
+                        if (plot != null) {
+                            if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                                fabricPlayer.sendMessage(
+                                        TranslatableCaption.of("height.height_limit"),
+                                        TagResolver.builder()
+                                                .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                                .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                                .build()
+                                );
+                                return ActionResult.FAIL;
+                            }
+                            if (!plot.hasOwner()) {
+                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                                    fabricPlayer.sendMessage(
+                                            TranslatableCaption.of("permission.no_permission_event"),
+                                            TagResolver.resolver(
+                                                    "node",
+                                                    Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)
+                                            )
+                                    );
+                                    return ActionResult.FAIL;
+                                }
+                            } else if (!plot.isAdded(fabricPlayer.getUUID())) {
+                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                                    fabricPlayer.sendMessage(
+                                            TranslatableCaption.of("permission.no_permission_event"),
+                                            TagResolver.resolver(
+                                                    "node",
+                                                    Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER)
+                                            )
+                                    );
+                                    return ActionResult.FAIL;
+                                }
+                            } else if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                                    fabricPlayer.sendMessage(
+                                            TranslatableCaption.of("done.building_restricted")
+                                    );
+                                    return ActionResult.FAIL;
+                                }
+                            }
+                        } else if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_ROAD)) {
+                            fabricPlayer.sendMessage(
+                                    TranslatableCaption.of("permission.no_permission_event"),
+                                    TagResolver.resolver(
+                                            "node",
+                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_ROAD)
+                                    )
+                            );
+                            return ActionResult.FAIL;
+                        }
+                        return ActionResult.PASS;
+                    }
+
+                    //global painting breaking permission - metatweaks.paintingBreaking
+                    if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission("metatweaks.paintingBreaking").asBoolean()) {
+                        return ActionResult.PASS;
+                    }
+                    return ActionResult.FAIL;
+                }
+            }
+            return ActionResult.PASS;
         });
 
     }
