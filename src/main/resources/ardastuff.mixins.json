@@ -13,6 +13,7 @@
     "CropGrowthMixin",
     "EggEntityMixin",
     "EndCrystalMixin",
+    "EnderPearlEntityMixin",
     "EntityBucketItemMixin",
     "EntityMixin",
     "FallingBlockMixin",
