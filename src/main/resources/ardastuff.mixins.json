@@ -25,6 +25,7 @@
     "ItemFrameEntityMixin",
     "LeavesBlockMixin",
     "LilyPadBlockMixin",
+    "MobEntityMixin",
     "RespawnAnchorMixin",
     "SaplingGrowthMixin",
     "ServerPlayerEntity",
