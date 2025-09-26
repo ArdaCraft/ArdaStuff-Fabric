@@ -10,6 +10,8 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
 import net.luckperms.api.LuckPermsProvider;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.registry.Registries;
@@ -215,52 +217,50 @@ public class ArdaStuff implements ModInitializer {
          * - Finally, applies isBlockProtectedAgainstUseAction (doors/gates allowed with empty hand; otherwise permission required).
          */
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+
+
             if (player.getMainHandStack().getItem() instanceof SpawnEggItem) {
                 Log.info(LogCategory.LOG, "Spawn egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
                 return ActionResult.FAIL;
             }
 
+            if (player.getMainHandStack().getItem() instanceof MinecartItem) {
+                Log.info(LogCategory.LOG, "Minecart used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof MinecartItem) {
-                    Log.info(LogCategory.LOG, "Minecart used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof BucketItem) {
+                Log.info(LogCategory.LOG, "Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof BucketItem) {
-                    Log.info(LogCategory.LOG, "Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof FlintAndSteelItem) {
+                Log.info(LogCategory.LOG, "Flint and Steel used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof FlintAndSteelItem) {
-                    Log.info(LogCategory.LOG, "Flint and Steel used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof TridentItem) {
+                Log.info(LogCategory.LOG, "Trident used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof TridentItem) {
-                    Log.info(LogCategory.LOG, "Trident used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof BoatItem) {
+                Log.info(LogCategory.LOG, "Boat used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof BoatItem) {
-                    Log.info(LogCategory.LOG, "Boat used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof EggItem) {
+                Log.info(LogCategory.LOG, "Egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof EggItem) {
-                    Log.info(LogCategory.LOG, "Egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof MilkBucketItem) {
+                Log.info(LogCategory.LOG, "Milk Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof MilkBucketItem) {
-                    Log.info(LogCategory.LOG, "Milk Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
-
-                if (player.getMainHandStack().getItem() instanceof ThrowablePotionItem) {
-                    Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
-                    return ActionResult.FAIL;
-                }
-            if (!hasPermission(player, "metatweaks.protection")) {
+            if (player.getMainHandStack().getItem() instanceof ThrowablePotionItem) {
+                Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()) + " by " + player.getName().getString());
                 return ActionResult.FAIL;
             }
 
@@ -273,17 +273,79 @@ public class ArdaStuff implements ModInitializer {
                             } else if (!hasPermission(serverPlayer, "metatweaks.createAll")) {
                                 if (!allowedCreateBlocks.contains(Registries.ITEM.getId(serverPlayer.getStackInHand(hand).getItem()))) {
                                     return ActionResult.FAIL;
-                                } else {
-                                    return ActionResult.PASS;
                                 }
-                            } else {
-                                return ActionResult.PASS;
                             }
                         }
                     } catch (IllegalStateException e) {
                         e.printStackTrace();
                     }
                 }
+            }
+
+            if (player instanceof ServerPlayerEntity serverPlayer) {
+
+                Location location = FabricUtil.adapt(
+                        GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(),
+                                hitResult.getBlockPos()));
+                PlotArea area = location.getPlotArea();
+                if (area == null) {
+                    // No plot system here → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+                Plot plot = area.getPlot(location);
+                if (plot == null) {
+                    // Not inside a plot → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                    fabricPlayer.sendMessage(
+                            TranslatableCaption.of("height.height_limit"),
+                            TagResolver.builder()
+                                    .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                    .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                    .build()
+                    );
+                    return ActionResult.FAIL;
+                }
+
+                if (!plot.hasOwner()) {
+                    // Unowned plot requires admin permission
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                        fabricPlayer.sendMessage(
+                                TranslatableCaption.of("permission.no_permission_event"),
+                                TagResolver.resolver("node",
+                                        Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
+                        );
+                        return ActionResult.FAIL;
+                    }
+                } else {
+                    // Must be owner OR added
+                    boolean isOwner = plot.getOwner() != null && plot.getOwner().equals(fabricPlayer.getUUID());
+                    boolean isAdded = plot.isAdded(fabricPlayer.getUUID());
+                    if (!(isOwner || isAdded)) {
+                        if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                            fabricPlayer.sendMessage(
+                                    TranslatableCaption.of("permission.no_permission_event"),
+                                    TagResolver.resolver("node",
+                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
+                            );
+                            return ActionResult.FAIL;
+                        }
+                    }
+                }
+
+                if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                        fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
+                        return ActionResult.FAIL;
+                    }
+                }
+
+                // All guest conditions satisfied
+                return ActionResult.PASS;
             }
 
             return isBlockProtectedAgainstUseAction(player, world, hand, hitResult) ? ActionResult.FAIL : ActionResult.PASS;
@@ -296,52 +358,52 @@ public class ArdaStuff implements ModInitializer {
          * - If permitted, returns PASS to allow vanilla/other handlers to proceed; otherwise FAIL to block.
          */
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+
+
             if (player.getMainHandStack().getItem() instanceof SpawnEggItem) {
                 Log.info(LogCategory.LOG, "Spawn egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
                 return ActionResult.FAIL;
             }
 
+            if (player.getMainHandStack().getItem() instanceof MinecartItem) {
+                Log.info(LogCategory.LOG, "Minecart used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
+            if (player.getMainHandStack().getItem() instanceof BucketItem) {
+                Log.info(LogCategory.LOG, "Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof MinecartItem) {
-                    Log.info(LogCategory.LOG, "Minecart used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof FlintAndSteelItem) {
+                Log.info(LogCategory.LOG, "Flint and Steel used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof BucketItem) {
-                    Log.info(LogCategory.LOG, "Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof TridentItem) {
+                Log.info(LogCategory.LOG, "Trident used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof FlintAndSteelItem) {
-                    Log.info(LogCategory.LOG, "Flint and Steel used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof BoatItem) {
+                Log.info(LogCategory.LOG, "Boat used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof TridentItem) {
-                    Log.info(LogCategory.LOG, "Trident used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof EggItem) {
+                Log.info(LogCategory.LOG, "Egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof BoatItem) {
-                    Log.info(LogCategory.LOG, "Boat used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof MilkBucketItem) {
+                Log.info(LogCategory.LOG, "Milk Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
 
-                if (player.getMainHandStack().getItem() instanceof EggItem) {
-                    Log.info(LogCategory.LOG, "Egg used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
-
-                if (player.getMainHandStack().getItem() instanceof MilkBucketItem) {
-                    Log.info(LogCategory.LOG, "Milk Bucket used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
-
-                if (player.getMainHandStack().getItem() instanceof ThrowablePotionItem) {
-                    Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
-                    return ActionResult.FAIL;
-                }
+            if (player.getMainHandStack().getItem() instanceof ThrowablePotionItem) {
+                Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
+                return ActionResult.FAIL;
+            }
             if (!hasPermission(player, "metatweaks.protection")) {
                 return ActionResult.FAIL;
             }
@@ -388,6 +450,7 @@ public class ArdaStuff implements ModInitializer {
          * - Create items: same permission/whitelist gating as block/entity use.
          */
         UseItemCallback.EVENT.register((player, world, hand) -> {
+
 
             if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("patchouli:guide_book")) {
                 return TypedActionResult.pass(player.getStackInHand(hand));
@@ -439,10 +502,6 @@ public class ArdaStuff implements ModInitializer {
                 Log.info(LogCategory.LOG, "Throwable Potion used " + Registries.ITEM.getId(player.getStackInHand(hand).getItem()));
                 return TypedActionResult.fail(ItemStack.EMPTY);
             }
-            if (!hasPermission(player, "metatweaks.protection")) {
-
-                return TypedActionResult.pass(ItemStack.EMPTY);
-            }
 
             if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("create:")) {
                 if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -453,11 +512,7 @@ public class ArdaStuff implements ModInitializer {
                             } else if (!hasPermission(serverPlayer, "metatweaks.createAll")) {
                                 if (!allowedCreateBlocks.contains(Registries.ITEM.getId(serverPlayer.getStackInHand(hand).getItem()))) {
                                     return TypedActionResult.fail(ItemStack.EMPTY);
-                                } else {
-                                    return TypedActionResult.pass(serverPlayer.getStackInHand(hand));
                                 }
-                            } else {
-                                return TypedActionResult.pass(serverPlayer.getStackInHand(hand));
                             }
                         }
                     } catch (IllegalStateException e) {
@@ -466,27 +521,237 @@ public class ArdaStuff implements ModInitializer {
                 }
             }
 
+            if (player instanceof ServerPlayerEntity serverPlayer) {
+                Location location = FabricUtil.adapt(
+                        GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(), serverPlayer.getBlockPos()));
+                PlotArea area = location.getPlotArea();
+                if (area == null) {
+                    // No plot system here → guests cannot break
+                    return TypedActionResult.fail(ItemStack.EMPTY);
+                }
+
+                FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+                Plot plot = area.getPlot(location);
+                if (plot == null) {
+                    // Not inside a plot → guests cannot break
+                    return TypedActionResult.fail(ItemStack.EMPTY);
+                }
+
+                if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                    fabricPlayer.sendMessage(
+                            TranslatableCaption.of("height.height_limit"),
+                            TagResolver.builder()
+                                    .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                    .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                    .build()
+                    );
+                    return TypedActionResult.fail(ItemStack.EMPTY);
+                }
+
+                if (!plot.hasOwner()) {
+                    // Unowned plot requires admin permission
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                        fabricPlayer.sendMessage(
+                                TranslatableCaption.of("permission.no_permission_event"),
+                                TagResolver.resolver("node",
+                                        Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
+                        );
+                        return TypedActionResult.fail(ItemStack.EMPTY);
+                    }
+                } else {
+                    // Must be owner OR added
+                    boolean isOwner = plot.getOwner() != null && plot.getOwner().equals(fabricPlayer.getUUID());
+                    boolean isAdded = plot.isAdded(fabricPlayer.getUUID());
+                    if (!(isOwner || isAdded)) {
+                        if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                            fabricPlayer.sendMessage(
+                                    TranslatableCaption.of("permission.no_permission_event"),
+                                    TagResolver.resolver("node",
+                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
+                            );
+                            return TypedActionResult.fail(ItemStack.EMPTY);
+                        }
+                    }
+                }
+
+                if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                        fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
+                        return TypedActionResult.fail(ItemStack.EMPTY);
+                    }
+                }
+
+                // All guest conditions satisfied
+                return TypedActionResult.pass(player.getStackInHand(hand));
+            }
+
             return TypedActionResult.pass(ItemStack.EMPTY);
         });
+        
+        AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+                // Only gate server players; let others fall through normally
+                return ActionResult.PASS;
+            }
 
+            Location location = FabricUtil.adapt(
+                    GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(), pos));
+            PlotArea area = location.getPlotArea();
+            if (area == null) {
+                // No plot system here → guests cannot break
+                return ActionResult.FAIL;
+            }
+
+            FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+            Plot plot = area.getPlot(location);
+            if (plot == null) {
+                // Not inside a plot → guests cannot break
+                return ActionResult.FAIL;
+            }
+
+            if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                fabricPlayer.sendMessage(
+                        TranslatableCaption.of("height.height_limit"),
+                        TagResolver.builder()
+                                .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                .build()
+                );
+                return ActionResult.FAIL;
+            }
+
+            if (!plot.hasOwner()) {
+                // Unowned plot requires admin permission
+                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                    fabricPlayer.sendMessage(
+                            TranslatableCaption.of("permission.no_permission_event"),
+                            TagResolver.resolver("node",
+                                    Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
+                    );
+                    return ActionResult.FAIL;
+                }
+            } else {
+                // Must be owner OR added
+                boolean isOwner = plot.getOwner() != null && plot.getOwner().equals(fabricPlayer.getUUID());
+                boolean isAdded = plot.isAdded(fabricPlayer.getUUID());
+                if (!(isOwner || isAdded)) {
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                        fabricPlayer.sendMessage(
+                                TranslatableCaption.of("permission.no_permission_event"),
+                                TagResolver.resolver("node",
+                                        Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
+                        );
+                        return ActionResult.FAIL;
+                    }
+                    return ActionResult.PASS;
+                }
+                return ActionResult.PASS;
+            }
+
+            if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                    fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
+                    return ActionResult.FAIL;
+                }
+                return ActionResult.PASS;
+            }
+
+            // All guest conditions satisfied
+            return ActionResult.PASS;
+        });
+
+        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+                if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+                    // Only gate server players; let others fall through normally
+                    return ActionResult.PASS;
+                }
+
+                Location location = FabricUtil.adapt(
+                        GlobalPos.create(serverPlayer.getServerWorld().getRegistryKey(),
+                                entity.getBlockPos()));
+                PlotArea area = location.getPlotArea();
+                if (area == null) {
+                    // No plot system here → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                FabricPlayer fabricPlayer = FabricUtil.adapt(serverPlayer);
+                Plot plot = area.getPlot(location);
+                if (plot == null) {
+                    // Not inside a plot → guests cannot break
+                    return ActionResult.FAIL;
+                }
+
+                if (area.notifyIfOutsideBuildArea(fabricPlayer, location.getY())) {
+                    fabricPlayer.sendMessage(
+                            TranslatableCaption.of("height.height_limit"),
+                            TagResolver.builder()
+                                    .tag("minheight", Tag.inserting(Component.text(area.getMinBuildHeight())))
+                                    .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
+                                    .build()
+                    );
+                    return ActionResult.FAIL;
+                }
+
+                if (!plot.hasOwner()) {
+                    // Unowned plot requires admin permission
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_UNOWNED)) {
+                        fabricPlayer.sendMessage(
+                                TranslatableCaption.of("permission.no_permission_event"),
+                                TagResolver.resolver("node",
+                                        Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
+                        );
+                        return ActionResult.FAIL;
+                    }
+                } else {
+                    // Must be owner OR added
+                    boolean isOwner = plot.getOwner() != null && plot.getOwner().equals(fabricPlayer.getUUID());
+                    boolean isAdded = plot.isAdded(fabricPlayer.getUUID());
+                    if (!(isOwner || isAdded)) {
+                        if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                            fabricPlayer.sendMessage(
+                                    TranslatableCaption.of("permission.no_permission_event"),
+                                    TagResolver.resolver("node",
+                                            Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
+                            );
+                            return ActionResult.FAIL;
+                        }
+                        return ActionResult.PASS;
+                    }
+                    return ActionResult.PASS;
+                }
+
+                if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
+                    if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
+                        fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
+                        return ActionResult.FAIL;
+                    }
+                    return ActionResult.PASS;
+                }
+
+                // All guest conditions satisfied
+                return ActionResult.PASS;
+        });
     }
 
     /**
-         * Checks if both hands are empty.
-         * @param player the player to check
-         * @return true if both main hand and offhand are empty, false otherwise
-         */
-        public boolean isHandEmpty(PlayerEntity player) {
+     * Checks if both hands are empty.
+     *
+     * @param player the player to check
+     * @return true if both main hand and offhand are empty, false otherwise
+     */
+    public boolean isHandEmpty(PlayerEntity player) {
         return player.getMainHandStack().isEmpty() && player.getOffHandStack().isEmpty();
     }
 
     /**
-         * Checks a LuckPerms permission for the given player. Only evaluated for server players.
-         * @param player the player
-         * @param permission the permission node to check
-         * @return true if permitted; false otherwise or if not a server player/adapter unavailable
-         */
-        public boolean hasPermission(PlayerEntity player, String permission) {
+     * Checks a LuckPerms permission for the given player. Only evaluated for server players.
+     *
+     * @param player     the player
+     * @param permission the permission node to check
+     * @return true if permitted; false otherwise or if not a server player/adapter unavailable
+     */
+    public boolean hasPermission(PlayerEntity player, String permission) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             try {
                 if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission(permission).asBoolean()) {
@@ -501,15 +766,16 @@ public class ArdaStuff implements ModInitializer {
     }
 
     /**
-         * Determines whether a block use action should be treated as protected/denied for a player.
-         * Allows bare-hand interaction with doors/gates; otherwise requires metatweaks.protection.
-         * @param player the player
-         * @param world the world
-         * @param hand the hand used
-         * @param hitResult the targeted block hit
-         * @return true if use action is protected (should be denied), false otherwise
-         */
-        public boolean isBlockProtectedAgainstUseAction(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
+     * Determines whether a block use action should be treated as protected/denied for a player.
+     * Allows bare-hand interaction with doors/gates; otherwise requires metatweaks.protection.
+     *
+     * @param player    the player
+     * @param world     the world
+     * @param hand      the hand used
+     * @param hitResult the targeted block hit
+     * @return true if use action is protected (should be denied), false otherwise
+     */
+    public boolean isBlockProtectedAgainstUseAction(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
 
         var blockName = Registries.BLOCK.getId(world.getBlockState(hitResult.getBlockPos()).getBlock()).toString().toLowerCase();
 
