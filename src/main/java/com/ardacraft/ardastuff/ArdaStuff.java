@@ -45,7 +45,6 @@ import java.util.logging.Logger;
  * </p>
  */
 public class ArdaStuff implements ModInitializer {
-
     public static boolean disableWaterSpread = true;
     public static HashSet<ServerPlayerEntity> waterSpreaders;
     public ArrayList<Identifier> allowedCreateBlocks;
@@ -517,7 +516,7 @@ public class ArdaStuff implements ModInitializer {
      * @param permission the permission node to check, e.g. "metatweaks.protection"
      * @return true if the permission is granted; false otherwise
      */
-    public boolean hasPermission(PlayerEntity player, String permission) {
+    public static boolean hasPermission(PlayerEntity player, String permission) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             try {
                 if (LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(serverPlayer).getCachedData().getPermissionData().checkPermission(permission).asBoolean()) {
