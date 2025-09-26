@@ -604,7 +604,6 @@ public class ArdaStuff implements ModInitializer {
         });
         
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
-            System.out.println("ATTACKBLOCKCALLBACK");
             if (!(player instanceof ServerPlayerEntity serverPlayer)) {
                 // Only gate server players; let others fall through normally
                 return ActionResult.PASS;
@@ -678,7 +677,6 @@ public class ArdaStuff implements ModInitializer {
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
                 if (!(player instanceof ServerPlayerEntity serverPlayer)) {
-                    System.out.println("test1");
                     // Only gate server players; let others fall through normally
                     return ActionResult.PASS;
                 }
@@ -689,7 +687,6 @@ public class ArdaStuff implements ModInitializer {
                 PlotArea area = location.getPlotArea();
                 if (area == null) {
                     // No plot system here → guests cannot break
-                    System.out.println("test2");
                     return ActionResult.FAIL;
                 }
 
@@ -697,7 +694,6 @@ public class ArdaStuff implements ModInitializer {
                 Plot plot = area.getPlot(location);
                 if (plot == null) {
                     // Not inside a plot → guests cannot break
-                    System.out.println("test3");
                     return ActionResult.FAIL;
                 }
 
@@ -709,7 +705,6 @@ public class ArdaStuff implements ModInitializer {
                                     .tag("maxheight", Tag.inserting(Component.text(area.getMaxBuildHeight())))
                                     .build()
                     );
-                    System.out.println("test4");
                     return ActionResult.FAIL;
                 }
 
@@ -721,7 +716,6 @@ public class ArdaStuff implements ModInitializer {
                                 TagResolver.resolver("node",
                                         Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_UNOWNED))
                         );
-                        System.out.println("test5");
                         return ActionResult.FAIL;
                     }
                 } else {
@@ -735,27 +729,21 @@ public class ArdaStuff implements ModInitializer {
                                     TagResolver.resolver("node",
                                             Tag.inserting(Permission.PERMISSION_ADMIN_BUILD_OTHER))
                             );
-                            System.out.println("test6");
                             return ActionResult.FAIL;
                         }
-                        System.out.println("test7");
                         return ActionResult.PASS;
                     }
-                    System.out.println("test8");
                     return ActionResult.PASS;
                 }
 
                 if (Settings.Done.RESTRICT_BUILDING && DoneFlag.isDone(plot)) {
                     if (!fabricPlayer.hasPermission(Permission.PERMISSION_ADMIN_BUILD_OTHER)) {
                         fabricPlayer.sendMessage(TranslatableCaption.of("done.building_restricted"));
-                        System.out.println("test9");
                         return ActionResult.FAIL;
                     }
-                    System.out.println("test10");
                     return ActionResult.PASS;
                 }
 
-                System.out.println("test11");
                 // All guest conditions satisfied
                 return ActionResult.PASS;
         });
