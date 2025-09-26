@@ -25,6 +25,7 @@
     "ItemFrameEntityMixin",
     "LeavesBlockMixin",
     "LilyPadBlockMixin",
+    "LivingEntityMixin",
     "MobEntityMixin",
     "RespawnAnchorMixin",
     "SaplingGrowthMixin",
