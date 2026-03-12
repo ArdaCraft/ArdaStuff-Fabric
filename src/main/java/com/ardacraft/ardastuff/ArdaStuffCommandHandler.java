@@ -12,7 +12,6 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.HorseColor;
 import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.entity.passive.HorseMarking;
-import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
@@ -127,26 +126,6 @@ public class ArdaStuffCommandHandler {
 
             return Command.SINGLE_SUCCESS;
         }));
-
-        dispatcher.register(CommandManager.literal("boat").executes(context -> {
-            if (!context.getSource().isExecutedByPlayer()) return Command.SINGLE_SUCCESS;
-
-            var player = context.getSource().getPlayer();
-            if (player == null) return Command.SINGLE_SUCCESS;
-            var position = player.getPos();
-
-            var boat = new BoatEntity(context.getSource().getWorld(), position.x, position.y, position.z);
-            boat.setCustomName(Text.literal("deleteme"));
-
-            boat.setYaw(player.getYaw());
-
-            player.getWorld().spawnEntity(boat);
-
-            player.startRiding(boat, true);
-
-            return Command.SINGLE_SUCCESS;
-        }));
-
     }
 
     /**
