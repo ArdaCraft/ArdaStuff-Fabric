@@ -137,14 +137,14 @@ public class ArdaStuff implements ModInitializer {
             return ActionResult.FAIL;
         });
 
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
+/*        ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                 if (player.getBlockPos().getY() < -64 && player.getServerWorld().equals(player.getServer().getOverworld())) {
                     server.getCommandManager().executeWithPrefix(player.getCommandSource(), "/warp spawn");
                 }
             }
         });
-
+*/
         Stimuli.global().listen(FireTickEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
