@@ -448,7 +448,7 @@ public class ArdaStuff implements ModInitializer {
             return ActionResult.PASS;
         });
 
-        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+/*        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity instanceof ServerPlayerEntity player) {
                 try {
                     if (!LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.hasJoined").asBoolean()) {
@@ -466,7 +466,7 @@ public class ArdaStuff implements ModInitializer {
                 } catch (IllegalStateException e) {
                     e.printStackTrace();
                 }
-/*
+
                 try {
                     String group = LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getPrimaryGroup().toLowerCase();
 
@@ -493,9 +493,9 @@ public class ArdaStuff implements ModInitializer {
                     }
                 } catch (IllegalStateException e) {
                     e.printStackTrace();
-                }*/
+                }
             }
-        });
+        });*/
     }
 
     /**
