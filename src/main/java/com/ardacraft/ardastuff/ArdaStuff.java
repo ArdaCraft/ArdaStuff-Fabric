@@ -441,11 +441,11 @@ public class ArdaStuff implements ModInitializer {
             return ActionResult.PASS;
         });
 
-/*        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity instanceof ServerPlayerEntity player) {
                 try {
                     if (!LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.hasJoined").asBoolean()) {
-                        world.getServer().getPlayerManager().broadcast(Texts.setStyleIfAbsent(Text.literal("Welcome to ArdaCraft, " + player.getDisplayName().getString() + "! Please check out your guide book!"), Style.EMPTY.withColor(TextColor.parse("#416cba"))), false);
+                        //world.getServer().getPlayerManager().broadcast(Texts.setStyleIfAbsent(Text.literal("Welcome to ArdaCraft, " + player.getDisplayName().getString() + "! Please check out your guide book!"), Style.EMPTY.withColor(TextColor.parse("#416cba"))), false);
                         ItemStack guideBook = Registries.ITEM.get(new Identifier("patchouli", "guide_book")).getDefaultStack();
                         ItemStack pathfinder = Registries.ITEM.get(new Identifier("ardapaths", "path_revealer")).getDefaultStack();
 
@@ -460,7 +460,7 @@ public class ArdaStuff implements ModInitializer {
                     e.printStackTrace();
                 }
 
-                try {
+               /* try {
                     String group = LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getPrimaryGroup().toLowerCase();
 
                     var teamName = switch (group) {
@@ -486,9 +486,9 @@ public class ArdaStuff implements ModInitializer {
                     }
                 } catch (IllegalStateException e) {
                     e.printStackTrace();
-                }
+                }*/
             }
-        });*/
+        });
     }
 
     /**
