@@ -1,5 +1,7 @@
 package com.ardacraft.ardastuff;
 
+import com.ardacraft.ardastuff.ardamaps.RestApiLocationProvider;
+import com.duom.ardamaps.api.ArdaMapsApi;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -77,6 +79,9 @@ public class ArdaStuff implements ModInitializer {
         allowedCreateBlocks.add(new Identifier("create:red_valve_handle"));
         allowedCreateBlocks.add(new Identifier("create:gray_valve_handle"));
         allowedCreateBlocks.add(new Identifier("create:schematicannon"));
+
+        // Register the ArdaCraft REST API source as the default for ArdaStuff.
+        ArdaMapsApi.setLocationSource(new RestApiLocationProvider());
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // Create a scheduled executor service with a daemon thread
@@ -325,7 +330,7 @@ public class ArdaStuff implements ModInitializer {
         });
 
         UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("patchouli:guide_book")) {
+            if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("ardamaps:guidebook")) {
                 return TypedActionResult.pass(player.getStackInHand(hand));
             }
 
@@ -446,13 +451,11 @@ public class ArdaStuff implements ModInitializer {
                 try {
                     if (!LuckPermsProvider.get().getPlayerAdapter(ServerPlayerEntity.class).getUser(player).getCachedData().getPermissionData().checkPermission("metatweaks.hasJoined").asBoolean()) {
                         //world.getServer().getPlayerManager().broadcast(Texts.setStyleIfAbsent(Text.literal("Welcome to ArdaCraft, " + player.getDisplayName().getString() + "! Please check out your guide book!"), Style.EMPTY.withColor(TextColor.parse("#416cba"))), false);
-                        ItemStack guideBook = Registries.ITEM.get(new Identifier("patchouli", "guide_book")).getDefaultStack();
+                        ItemStack guideBook = Registries.ITEM.get(new Identifier("ardamaps", "guidebook")).getDefaultStack();
                         ItemStack pathfinder = Registries.ITEM.get(new Identifier("ardapaths", "path_revealer")).getDefaultStack();
 
-                        guideBook.getOrCreateNbt().putString("patchouli:book", "patchouli:ac_guide");
                         player.giveItemStack(pathfinder);
                         player.giveItemStack(guideBook);
-
 
                         LuckPermsProvider.get().getUserManager().modifyUser(player.getUuid(), user -> user.data().add(Node.builder("metatweaks.hasJoined").build()));
                     }
