@@ -1,6 +1,5 @@
 package com.ardacraft.ardastuff.ardamaps;
 
-import com.duom.ardamaps.ArdaMaps;
 import com.duom.ardamaps.api.LocationSource;
 import com.duom.ardamaps.core.consumers.HuskHomesApiHook;
 import com.duom.ardamaps.core.data.location.LocationServer;
@@ -11,6 +10,8 @@ import net.minecraft.util.math.Vec3d;
 import net.william278.huskhomes.api.FabricHuskHomesAPI;
 import net.william278.huskhomes.position.Warp;
 import org.jsoup.parser.Parser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -39,6 +41,9 @@ import java.util.regex.Pattern;
 @Environment(EnvType.SERVER)
 public class RestApiLocationProvider implements LocationSource {
 
+    /** Logger instance for the mod. */
+    private static final Logger LOGGER = LoggerFactory.getLogger(RestApiLocationProvider.class);
+    
     /** Base URL for the paginated location REST API endpoint. Page number is appended at runtime. */
     private static final String LOCATION_API_URL =
             "https://wp.ardacraft.me/wp-json/wp/v2/location-region?per_page=100&page=";
@@ -74,9 +79,8 @@ public class RestApiLocationProvider implements LocationSource {
     @Override
     public void refreshLocations(Consumer<List<LocationServer>> callback) {
 
-        ArdaMaps.LOGGER.info("Fetching locations from REST API: {}", LOCATION_API_URL + "<page>");
-
-        ArdaMaps.IO_EXECUTOR.submit(() -> {
+        LOGGER.info("Fetching locations from REST API: {}", LOCATION_API_URL + "<page>");
+        CompletableFuture.supplyAsync(() -> {
 
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
@@ -85,8 +89,17 @@ public class RestApiLocationProvider implements LocationSource {
             Map<Integer, String> buildTypeMap = fetchBuildTypes(client);
             List<LocationServer> locations = fetchLocations(client, buildTypeMap);
 
-            ArdaMaps.LOGGER.info("{} locations fetched", locations.size());
+            LOGGER.info("{} locations fetched", locations.size());
             postProcessLocations(locations, callback);
+
+            return null;
+
+        }).exceptionally(ex -> {
+
+            LOGGER.error("Failed to fetch locations from REST API", ex);
+            callback.accept(new ArrayList<>());
+
+            return null;
         });
     }
 
@@ -102,11 +115,11 @@ public class RestApiLocationProvider implements LocationSource {
         Map<Integer, String> buildTypeMap = new HashMap<>();
         int page = 1;
 
-        ArdaMaps.LOGGER.info("Fetching build types from REST API: {}", BUILD_TYPE_API_URL + "<page>");
+        LOGGER.info("Fetching build types from REST API: {}", BUILD_TYPE_API_URL + "<page>");
 
         while (true) {
 
-            ArdaMaps.LOGGER.info("\t- Fetching page {}", page);
+            LOGGER.info("\t- Fetching page {}", page);
             String url = BUILD_TYPE_API_URL + page;
 
             try {
@@ -120,19 +133,19 @@ public class RestApiLocationProvider implements LocationSource {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 400) {
-                    ArdaMaps.LOGGER.info("Build type API returned 400 at page {} - stopping pagination", page);
+                    LOGGER.info("Build type API returned 400 at page {} - stopping pagination", page);
                     break;
                 }
 
                 if (response.statusCode() != 200) {
-                    ArdaMaps.LOGGER.warn("Build type API returned unexpected status {} at page {} - skipping build types", response.statusCode(), page);
+                    LOGGER.warn("Build type API returned unexpected status {} at page {} - skipping build types", response.statusCode(), page);
                     break;
                 }
 
                 JsonArray array = GSON.fromJson(response.body(), JsonArray.class);
 
                 if (array == null || array.isEmpty()) {
-                    ArdaMaps.LOGGER.info("Build type API returned empty page {} - stopping pagination", page);
+                    LOGGER.info("Build type API returned empty page {} - stopping pagination", page);
                     break;
                 }
 
@@ -153,12 +166,12 @@ public class RestApiLocationProvider implements LocationSource {
                 page++;
 
             } catch (Exception e) {
-                ArdaMaps.LOGGER.warn("Failed to fetch build types at page {} - proceeding with {} types already loaded", page, buildTypeMap.size(), e);
+                LOGGER.warn("Failed to fetch build types at page {} - proceeding with {} types already loaded", page, buildTypeMap.size(), e);
                 break;
             }
         }
 
-        ArdaMaps.LOGGER.info("Finished fetching {} build types from REST API", buildTypeMap.size());
+        LOGGER.info("Finished fetching {} build types from REST API", buildTypeMap.size());
         return buildTypeMap;
     }
 
@@ -174,12 +187,12 @@ public class RestApiLocationProvider implements LocationSource {
         List<LocationServer> locations = new ArrayList<>();
         int page = 1;
 
-        ArdaMaps.LOGGER.info("Fetching Locations from REST API: {}", LOCATION_API_URL + "<page>");
+        LOGGER.info("Fetching Locations from REST API: {}", LOCATION_API_URL + "<page>");
 
         // Loop until we hit an empty page or an error, which indicates we've fetched all available data
         while (true) {
 
-            ArdaMaps.LOGGER.info("\t- Fetching page {}", page);
+            LOGGER.info("\t- Fetching page {}", page);
 
             String url = LOCATION_API_URL + page;
 
@@ -194,19 +207,19 @@ public class RestApiLocationProvider implements LocationSource {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 400) {
-                    ArdaMaps.LOGGER.info("REST API returned 400 at page {} - stopping pagination", page);
+                    LOGGER.info("REST API returned 400 at page {} - stopping pagination", page);
                     break;
                 }
 
                 if (response.statusCode() != 200) {
-                    ArdaMaps.LOGGER.error("REST API returned unexpected status {} at page {}", response.statusCode(), page);
+                    LOGGER.error("REST API returned unexpected status {} at page {}", response.statusCode(), page);
                     break;
                 }
 
                 JsonArray array = GSON.fromJson(response.body(), JsonArray.class);
 
                 if (array == null || array.isEmpty()) {
-                    ArdaMaps.LOGGER.info("REST API returned empty page {} - stopping pagination", page);
+                    LOGGER.info("REST API returned empty page {} - stopping pagination", page);
                     break;
                 }
 
@@ -215,7 +228,7 @@ public class RestApiLocationProvider implements LocationSource {
                 page++;
 
             } catch (Exception e) {
-                ArdaMaps.LOGGER.error("Failed to fetch locations from REST API at page {}", page, e);
+                LOGGER.error("Failed to fetch locations from REST API at page {}", page, e);
                 break;
             }
         }
@@ -233,14 +246,14 @@ public class RestApiLocationProvider implements LocationSource {
     private static void postProcessLocations(List<LocationServer> locations, Consumer<List<LocationServer>> callback) {
 
         if (HuskHomesApiHook.getInstance() == null) {
-            ArdaMaps.LOGGER.warn("HuskHomes API not available, skipping warp resolution");
+            LOGGER.warn("HuskHomes API not available, skipping warp resolution");
             callback.accept(locations);
             return;
         }
 
         FabricHuskHomesAPI.getInstance().getWarps().thenAccept((List<Warp> warpList) -> {
 
-            ArdaMaps.LOGGER.info("Syncing {} warps for REST API location resolution", warpList.size());
+            LOGGER.info("Syncing {} warps for REST API location resolution", warpList.size());
 
             for (LocationServer location : locations) {
                 if (location.getWarp() != null && !location.getWarp().isEmpty()) {
@@ -267,7 +280,7 @@ public class RestApiLocationProvider implements LocationSource {
                 locations.add(parseEntry(element.getAsJsonObject(), buildTypeMap));
 
             } catch (Exception e) {
-                ArdaMaps.LOGGER.error("Failed to parse location entry on page {}", page, e);
+                LOGGER.error("Failed to parse location entry on page {}", page, e);
             }
         }
     }
@@ -511,7 +524,7 @@ public class RestApiLocationProvider implements LocationSource {
 
             } catch (NumberFormatException numberFormatException) {
 
-                ArdaMaps.LOGGER.warn("Invalid minecraft_x value '{}', defaulting to 0", x);
+                LOGGER.warn("Invalid minecraft_x value '{}', defaulting to 0", x);
             }
         }
 
@@ -523,7 +536,7 @@ public class RestApiLocationProvider implements LocationSource {
 
             } catch (NumberFormatException numberFormatException) {
 
-                ArdaMaps.LOGGER.warn("Invalid minecraft_z value '{}', defaulting to 0", z);
+                LOGGER.warn("Invalid minecraft_z value '{}', defaulting to 0", z);
             }
         }
 

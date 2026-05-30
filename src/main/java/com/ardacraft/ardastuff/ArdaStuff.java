@@ -1,13 +1,11 @@
 package com.ardacraft.ardastuff;
 
-import com.ardacraft.ardastuff.ardamaps.RestApiLocationProvider;
-import com.duom.ardamaps.api.ArdaMapsApi;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
@@ -17,10 +15,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.text.Texts;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
@@ -79,9 +73,6 @@ public class ArdaStuff implements ModInitializer {
         allowedCreateBlocks.add(new Identifier("create:red_valve_handle"));
         allowedCreateBlocks.add(new Identifier("create:gray_valve_handle"));
         allowedCreateBlocks.add(new Identifier("create:schematicannon"));
-
-        // Register the ArdaCraft REST API source as the default for ArdaStuff.
-        ArdaMapsApi.setLocationSource(new RestApiLocationProvider());
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // Create a scheduled executor service with a daemon thread
