@@ -13,8 +13,8 @@ public class ArdaMapsHook implements ArdaMapsApiEntrypoint {
      * Set the WP-REST API location provider as the source for location data in ArdaMaps.
      */
     @Override
-    public void onArdaMapsReady() {
+    public void onApiReady(ArdaMapsApi ardaMapsApi) {
 
-        ArdaMapsApi.setLocationSource(new RestApiLocationProvider());
+        ardaMapsApi.getLocationsApi().setLocationSource(RestApiLocationProvider::refreshLocations);
     }
 }
