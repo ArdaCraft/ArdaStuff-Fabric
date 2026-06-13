@@ -1,6 +1,5 @@
 package com.ardacraft.ardastuff.ardamaps;
 
-import com.duom.ardamaps.api.LocationSource;
 import com.duom.ardamaps.core.consumers.HuskHomesApiHook;
 import com.duom.ardamaps.core.data.location.LocationServer;
 import com.google.gson.*;
@@ -23,23 +22,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
- * Built-in {@link LocationSource} that fetches location data from the ArdaCraft WordPress REST API.
+ * ArdaMaps location source that fetches location data from the ArdaCraft WordPress REST API.
  * This class fetches paginated location data and maps it to {@link LocationServer} objects.
- *
- * <p>This implementation is registered as the default source during ArdaMaps initialization.
- * It is intended to be externalized into a separate companion mod in the future; at that point,
- * ArdaMaps itself will ship with no default source and require an explicit registration.</p>
- *
- * <p>Register via {@link com.duom.ardamaps.api.ArdaMapsApi#setLocationSource} if you wish to
- * override or replicate this behaviour from your own mod.</p>
  */
 @SuppressWarnings("LoggingSimilarMessage")
 @Environment(EnvType.SERVER)
-public class RestApiLocationProvider implements LocationSource {
+public class RestApiLocationProvider {
 
     /** Logger instance for the mod. */
     private static final Logger LOGGER = LoggerFactory.getLogger(RestApiLocationProvider.class);
@@ -73,14 +64,11 @@ public class RestApiLocationProvider implements LocationSource {
     /**
      * Fetches all locations from the REST API, page by page, and invokes the callback
      * once all pages have been collected and post-processed.
-     *
-     * @param callback Invoked with the full list of {@link LocationServer} once complete.
      */
-    @Override
-    public void refreshLocations(Consumer<List<LocationServer>> callback) {
+    public static CompletableFuture<List<LocationServer>> refreshLocations() {
 
         LOGGER.info("Fetching locations from REST API: {}", LOCATION_API_URL + "<page>");
-        CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
 
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
@@ -90,17 +78,10 @@ public class RestApiLocationProvider implements LocationSource {
             List<LocationServer> locations = fetchLocations(client, buildTypeMap);
 
             LOGGER.info("{} locations fetched", locations.size());
-            postProcessLocations(locations, callback);
 
-            return null;
+            return locations;
 
-        }).exceptionally(ex -> {
-
-            LOGGER.error("Failed to fetch locations from REST API", ex);
-            callback.accept(new ArrayList<>());
-
-            return null;
-        });
+        }).thenCompose(RestApiLocationProvider::postProcessLocations);
     }
 
     /**
@@ -241,27 +222,31 @@ public class RestApiLocationProvider implements LocationSource {
      * world identifiers and precise coordinates.
      *
      * @param locations The list of parsed LocationServer objects to post-process. This list is modified in-place.
-     * @param callback  The callback to invoke with the post-processed list once complete.
      */
-    private static void postProcessLocations(List<LocationServer> locations, Consumer<List<LocationServer>> callback) {
+    private static CompletableFuture<List<LocationServer>> postProcessLocations(List<LocationServer> locations) {
 
         if (HuskHomesApiHook.getInstance() == null) {
             LOGGER.warn("HuskHomes API not available, skipping warp resolution");
-            callback.accept(locations);
-            return;
+            return CompletableFuture.completedFuture(locations);
         }
 
-        FabricHuskHomesAPI.getInstance().getWarps().thenAccept((List<Warp> warpList) -> {
+        return FabricHuskHomesAPI.getInstance()
+                .getWarps()
+                .thenApply(warpList -> {
 
-            LOGGER.info("Syncing {} warps for REST API location resolution", warpList.size());
+                    LOGGER.info(
+                            "Syncing {} warps for REST API location resolution",
+                            warpList.size());
 
-            for (LocationServer location : locations) {
-                if (location.getWarp() != null && !location.getWarp().isEmpty()) {
-                    resolveWarp(warpList, location);
-                }
-            }
+                    for (LocationServer location : locations) {
+                        if (location.getWarp() != null
+                                && !location.getWarp().isEmpty()) {
+                            resolveWarp(warpList, location);
+                        }
+                    }
 
-        }).thenRun(() -> callback.accept(locations));
+                    return locations;
+                });
     }
 
     /**
@@ -348,6 +333,9 @@ public class RestApiLocationProvider implements LocationSource {
         // types - resolved from buildtype IDs using the prefetched buildTypeMap
         location.setTypes(parseTypes(acf, buildTypeMap));
 
+        // Project info is a pathfinder node ie <pathid>:<chapterid>, optional field
+        location.setPathfinder(getString(acf, "pathfinder", ""));
+
         // world defaults to overworld; position resolved later via warp post-processing
         location.setWorld("minecraft:overworld");
         location.setPosition(parsePositions(acf));
@@ -357,7 +345,7 @@ public class RestApiLocationProvider implements LocationSource {
 
     /**
      * Decodes an html / unicode string
-     * @param htmlString the html string to decode
+     * @param htmlString the HTML string to decode
      * @return the decoded string
      */
     private static String decodeHtmlString(String htmlString) {
