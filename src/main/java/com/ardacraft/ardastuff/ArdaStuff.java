@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
@@ -15,6 +16,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
@@ -27,6 +29,7 @@ import xyz.nucleoid.stimuli.event.world.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
@@ -133,14 +136,16 @@ public class ArdaStuff implements ModInitializer {
             return ActionResult.FAIL;
         });
 
-/*        ServerTickEvents.END_SERVER_TICK.register(server -> {
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            ServerWorld overworld = server.getOverworld();
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                if (player.getBlockPos().getY() < -64 && player.getServerWorld().equals(player.getServer().getOverworld())) {
-                    server.getCommandManager().executeWithPrefix(player.getCommandSource(), "/warp spawn");
+                if (player.getY() < 0 && player.getServerWorld() == overworld) {
+                    player.teleport(overworld, 406.5, 34, -223.5, Set.of(),
+                            player.getYaw(), player.getPitch());
+                    player.setVelocity(0, 0, 0);
                 }
             }
         });
-*/
         Stimuli.global().listen(FireTickEvent.EVENT, (world, pos) -> {
             return ActionResult.FAIL;
         });
