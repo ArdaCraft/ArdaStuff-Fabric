@@ -462,7 +462,7 @@ public class ArdaStuff implements ModInitializer {
         UseItemCallback.EVENT.register((player, world, hand) -> {
 
 
-            if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("patchouli:guide_book")) {
+            if (Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString().startsWith("ardamaps:guidebook")) {
                 return TypedActionResult.pass(player.getStackInHand(hand));
             }
 
