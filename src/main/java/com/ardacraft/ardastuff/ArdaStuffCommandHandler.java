@@ -53,8 +53,7 @@ public class ArdaStuffCommandHandler {
 
         dispatcher.register(CommandManager.literal("guide").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
-            ItemStack stack = Registries.ITEM.get(new Identifier("patchouli", "guide_book")).getDefaultStack();
-            stack.getOrCreateNbt().putString("patchouli:book", "patchouli:ac_guide");
+            ItemStack stack = Registries.ITEM.get(new Identifier("ardamaps", "guidebook")).getDefaultStack();
             player.giveItemStack(stack);
             return 0;
         }));
