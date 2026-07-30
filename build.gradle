@@ -60,11 +60,15 @@ dependencies {
     modImplementation (include('org.json:json:20220924'))
     modImplementation 'xyz.nucleoid:stimuli:0.4.7+1.20.1'
 
-    // Ardamaps
-    modApi("maven.modrinth:ardamaps:${project.ardamaps_version}")
-    // Both huskhomes and jsoup are already included in ardamaps, compile only flag is enough here.
+    // ArdaMaps - optional at runtime; compile-only so it is never a hard or transitive dependency.
+    modCompileOnly(files("libs/ArdaMaps-1.1.0-SNAPSHOT.jar"))
+    modLocalRuntime(files("libs/ArdaMaps-1.1.0-SNAPSHOT.jar"))
+
+    // HuskHomes - optional server mod, guarded by FabricLoader.isModLoaded("huskhomes").
     compileOnly("curse.maven:huskhomes-849217:5468607")
-    compileOnly("org.jsoup:jsoup:${project.jsoup_version}")
+
+    // jsoup is bundled: ArdaMaps also ships it, Fabric's JiJ dedups by version.
+    modImplementation(include("org.jsoup:jsoup:${project.jsoup_version}"))
 }
 
 processResources {
