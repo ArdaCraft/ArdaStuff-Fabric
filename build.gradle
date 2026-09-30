@@ -61,8 +61,8 @@ dependencies {
     modImplementation 'xyz.nucleoid:stimuli:0.4.7+1.20.1'
 
     // ArdaMaps - optional at runtime; compile-only so it is never a hard or transitive dependency.
-    modCompileOnly(files("libs/ArdaMaps-1.1.0-SNAPSHOT.jar"))
-    modLocalRuntime(files("libs/ArdaMaps-1.1.0-SNAPSHOT.jar"))
+    modCompileOnly("maven.modrinth:ardamaps:1.1.1+mc.1.20.1")
+    modLocalRuntime("maven.modrinth:ardamaps:1.1.1+mc.1.20.1")
 
     // HuskHomes - optional server mod, guarded by FabricLoader.isModLoaded("huskhomes").
     compileOnly("curse.maven:huskhomes-849217:5468607")
