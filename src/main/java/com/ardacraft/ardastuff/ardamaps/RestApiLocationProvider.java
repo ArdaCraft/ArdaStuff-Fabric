@@ -1,13 +1,8 @@
 package com.ardacraft.ardastuff.ardamaps;
 
-import com.duom.ardamaps.core.consumers.HuskHomesApiHook;
-import com.duom.ardamaps.core.data.location.LocationServer;
 import com.google.gson.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.util.math.Vec3d;
-import net.william278.huskhomes.api.FabricHuskHomesAPI;
-import net.william278.huskhomes.position.Warp;
 import org.jsoup.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +21,16 @@ import java.util.regex.Pattern;
 
 /**
  * ArdaMaps location source that fetches location data from the ArdaCraft WordPress REST API.
- * This class fetches paginated location data and maps it to {@link LocationServer} objects.
+ * This class fetches paginated location data and maps it to immutable location records.
  */
 @SuppressWarnings("LoggingSimilarMessage")
 @Environment(EnvType.SERVER)
 public class RestApiLocationProvider {
+
+    public record WpLocation(String id, String name, String world, List<String> types,
+                             String warp, double x, double y, double z,
+                             String pathfinder, String status, List<String> regions,
+                             boolean canon, String description, String externalUrl) {}
 
     /** Logger instance for the mod. */
     private static final Logger LOGGER = LoggerFactory.getLogger(RestApiLocationProvider.class);
@@ -65,7 +65,7 @@ public class RestApiLocationProvider {
      * Fetches all locations from the REST API, page by page, and invokes the callback
      * once all pages have been collected and post-processed.
      */
-    public static CompletableFuture<List<LocationServer>> refreshLocations() {
+    public static CompletableFuture<List<WpLocation>> refreshLocations() {
 
         LOGGER.info("Fetching locations from REST API: {}", LOCATION_API_URL + "<page>");
         return CompletableFuture.supplyAsync(() -> {
@@ -75,7 +75,7 @@ public class RestApiLocationProvider {
                     .build();
 
             Map<Integer, String> buildTypeMap = fetchBuildTypes(client);
-            List<LocationServer> locations = fetchLocations(client, buildTypeMap);
+            List<WpLocation> locations = fetchLocations(client, buildTypeMap);
 
             LOGGER.info("{} locations fetched", locations.size());
 
@@ -161,11 +161,11 @@ public class RestApiLocationProvider {
      *
      * @param client       The {@link HttpClient} to use for requests.
      * @param buildTypeMap A map of build type ID to name, fetched from the REST API before parsing locations.
-     * @return A list of parsed {@link LocationServer} objects, never {@code null}.
+     * @return A list of parsed {@link WpLocation} objects, never {@code null}.
      */
-    private static List<LocationServer> fetchLocations(HttpClient client, Map<Integer, String> buildTypeMap) {
+    private static List<WpLocation> fetchLocations(HttpClient client, Map<Integer, String> buildTypeMap) {
 
-        List<LocationServer> locations = new ArrayList<>();
+        List<WpLocation> locations = new ArrayList<>();
         int page = 1;
 
         LOGGER.info("Fetching Locations from REST API: {}", LOCATION_API_URL + "<page>");
@@ -221,44 +221,46 @@ public class RestApiLocationProvider {
      * Post-processes all parsed locations using HuskHomes warp data to resolve
      * world identifiers and precise coordinates.
      *
-     * @param locations The list of parsed LocationServer objects to post-process. This list is modified in-place.
+     * @param locations The list of parsed WpLocation objects to post-process.
      */
-    private static CompletableFuture<List<LocationServer>> postProcessLocations(List<LocationServer> locations) {
+    private static CompletableFuture<List<WpLocation>> postProcessLocations(List<WpLocation> locations) {
 
-        if (HuskHomesApiHook.getInstance() == null) {
+        if (!HuskHomesWarpResolver.isAvailable()) {
             LOGGER.warn("HuskHomes API not available, skipping warp resolution");
             return CompletableFuture.completedFuture(locations);
         }
 
-        return FabricHuskHomesAPI.getInstance()
-                .getWarps()
+        return HuskHomesWarpResolver.warps()
                 .thenApply(warpList -> {
 
                     LOGGER.info(
                             "Syncing {} warps for REST API location resolution",
                             warpList.size());
 
-                    for (LocationServer location : locations) {
-                        if (location.getWarp() != null
-                                && !location.getWarp().isEmpty()) {
-                            resolveWarp(warpList, location);
+                    List<WpLocation> resolvedLocations = new ArrayList<>(locations.size());
+                    for (WpLocation location : locations) {
+                        if (location.warp() != null
+                                && !location.warp().isEmpty()) {
+                            resolvedLocations.add(resolveWarp(warpList, location));
+                        } else {
+                            resolvedLocations.add(location);
                         }
                     }
 
-                    return locations;
+                    return resolvedLocations;
                 });
     }
 
     /**
-     * Parses a JSON array of location-region entries, converting each valid entry into a {@link LocationServer}
+     * Parses a JSON array of location-region entries, converting each valid entry into a {@link WpLocation}
      * and adding it to the provided list. Invalid entries are skipped with an error log.
      *
      * @param buildTypeMap A map of build type ID to name, used to resolve type names during parsing.
      * @param array        The JSON array containing location-region entries from the REST API.
-     * @param locations    The list to which parsed LocationServer objects will be added.
+     * @param locations    The list to which parsed WpLocation objects will be added.
      * @param page         The current page number being parsed, used for logging context.
      */
-    private static void parseJsonLocationArray(Map<Integer, String> buildTypeMap, JsonArray array, List<LocationServer> locations, int page) {
+    private static void parseJsonLocationArray(Map<Integer, String> buildTypeMap, JsonArray array, List<WpLocation> locations, int page) {
 
         for (JsonElement element : array) {
             try {
@@ -271,76 +273,99 @@ public class RestApiLocationProvider {
     }
 
     /**
-     * Resolves the warp for a location, updating its world identifier and position.
+     * Resolves the warp for a location, returning a copy with updated world identifier and position.
      *
      * @param warpList The list of available warps fetched from the HuskHomes API.
-     * @param location The LocationServer object to resolve. This object is modified in-place.
+     * @param location The WpLocation object to resolve.
      */
-    private static void resolveWarp(List<Warp> warpList, LocationServer location) {
+    private static WpLocation resolveWarp(List<HuskHomesWarpResolver.ResolvedWarp> warpList, WpLocation location) {
 
-        String warpString = location.getWarp().trim();
+        String warpString = location.warp().trim();
 
-        for (Warp warp : warpList) {
-            if (warp.getName().equalsIgnoreCase(warpString)) {
-                location.setWorld(warp.getWorld().getName());
-                location.setPosition(new Vec3d(warp.getX(), warp.getY(), warp.getZ()));
-                break;
+        for (HuskHomesWarpResolver.ResolvedWarp warp : warpList) {
+            if (warp.name().equalsIgnoreCase(warpString)) {
+                return new WpLocation(
+                        location.id(),
+                        location.name(),
+                        warp.world(),
+                        location.types(),
+                        location.warp(),
+                        warp.x(),
+                        warp.y(),
+                        warp.z(),
+                        location.pathfinder(),
+                        location.status(),
+                        location.regions(),
+                        location.canon(),
+                        location.description(),
+                        location.externalUrl());
             }
         }
+
+        return location;
     }
 
     /**
-     * Parses a single WP REST API location-region entry into a {@link LocationServer}.
+     * Parses a single WP REST API location-region entry into a {@link WpLocation}.
      *
      * @param obj The JSON object representing one location-region post.
-     * @return The parsed {@link LocationServer}, or {@code null} if the entry is invalid.
+     * @return The parsed {@link WpLocation}.
      */
-    private static LocationServer parseEntry(JsonObject obj, Map<Integer, String> buildTypeMap) {
-
-        LocationServer location = new LocationServer();
+    private static WpLocation parseEntry(JsonObject obj, Map<Integer, String> buildTypeMap) {
 
         String id = obj.has("slug") ? obj.get("slug").getAsString() : "";
-        location.setId(id);
 
         // name - from title.rendered
         String name = getNestedString(obj, "title", "rendered");
-
-        location.setName(name);
 
         JsonObject acf = obj.has("acf") && obj.get("acf").isJsonObject()
                 ? obj.getAsJsonObject("acf") : new JsonObject();
 
         // status
-        location.setStatus(getString(acf, "status", ""));
+        String status = getString(acf, "status", "");
 
         // warp - strip leading "/warp " prefix
         String rawWarp = getString(acf, "warp", "");
-        location.setWarp(rawWarp.replaceAll("(?i)^[\\\\/]warp\\s+", "").trim());
+        String warp = rawWarp.replaceAll("(?i)^[\\\\/]warp\\s+", "").trim();
 
         // long description
-        location.setDescription(getDescription(acf, "short_description", ""));
+        String description = getDescription(acf, "short_description", "");
 
         // Canon - true only when lore field equals "Canon" (case-insensitive)
         String lore = getString(acf, "lore", "");
-        location.setCanon("Canon".equalsIgnoreCase(lore));
+        boolean canon = "Canon".equalsIgnoreCase(lore);
 
         // external_url
-        location.setExternalUrl(getString(acf, "external_url", ""));
+        String externalUrl = getString(acf, "external_url", "");
 
         // regions - from region_source.formatted_value[*].post_name
-        location.setRegions(parseRegions(acf));
+        List<String> regions = parseRegions(acf);
 
         // types - resolved from buildtype IDs using the prefetched buildTypeMap
-        location.setTypes(parseTypes(acf, buildTypeMap));
+        List<String> types = parseTypes(acf, buildTypeMap);
 
         // Project info is a pathfinder node ie <pathid>:<chapterid>, optional field
-        location.setPathfinder(getString(acf, "pathfinder", ""));
+        String pathfinder = getString(acf, "pathfinder", "");
 
         // world defaults to overworld; position resolved later via warp post-processing
-        location.setWorld("minecraft:overworld");
-        location.setPosition(parsePositions(acf));
+        String world = "minecraft:overworld";
+        double[] position = parsePositions(acf);
 
-        return location;
+        return new WpLocation(
+                id,
+                name,
+                world,
+                types,
+                warp,
+                position[0],
+                0,
+                position[1],
+                pathfinder,
+                status,
+                regions,
+                canon,
+                description,
+                externalUrl);
     }
 
     /**
@@ -379,7 +404,7 @@ public class RestApiLocationProvider {
      * <p>Step 1 – strip origin: {@code https?://(?:www.)?ardacraft.me} is removed so that
      * {@code https://www.ardacraft.me/location/rivendell} becomes {@code /location/rivendell}.</p>
      * <p>Step 2 – fix path: {@code /region/} is replaced with {@code /regions/} to match
-     * the internal link format expected by {@link com.duom.ardamaps.core.data.conversion.HtmlConverter}.</p>
+     * the internal link format expected by ArdaMaps' HTML-to-text location renderer.</p>
      *
      * @param obj          The JSON object to extract the value from.
      * @param key          The key to look up in the JSON object.
@@ -494,9 +519,9 @@ public class RestApiLocationProvider {
      * Extracts Minecraft coordinates from {@code acf.minecraft_x} and {@code acf.minecraft_z}.
      *
      * @param acf The Advanced Custom Fields JSON object containing the coordinate data.
-     * @return A Vec3d representing the coordinates, with Y set to 0. Defaults to (0, 0, 0) if values are missing or invalid.
+     * @return X and Z coordinates. Defaults to (0, 0) if values are missing or invalid.
      */
-    private static Vec3d parsePositions(JsonObject acf) {
+    private static double[] parsePositions(JsonObject acf) {
 
         String x = getString(acf, "minecraft_x", "0");
         String z = getString(acf, "minecraft_z", "0");
@@ -528,7 +553,7 @@ public class RestApiLocationProvider {
             }
         }
 
-        return new Vec3d(xCoordinate, 0, zCoordinate);
+        return new double[] {xCoordinate, zCoordinate};
     }
 
     /**
