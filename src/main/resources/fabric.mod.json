@@ -27,5 +27,9 @@
     "fabricloader": ">=0.14.17",
     "fabric": "*",
     "minecraft": "1.20.1"
+  },
+  "suggests": {
+    "ardamaps": ">=1.1.0",
+    "huskhomes": "*"
   }
 }
